@@ -59,76 +59,76 @@
     {
       "n": 1,
       "K": 4,
-      "gas": 1009097
+      "gas": 923759
     },
     {
       "n": 1,
       "K": 8,
-      "gas": 1719765
+      "gas": 1535078
     },
     {
       "n": 2,
       "K": 8,
-      "gas": 2710760
+      "gas": 2526333
     },
     {
       "n": 4,
       "K": 8,
-      "gas": 4692805
+      "gas": 4508903
     },
     {
       "n": 8,
       "K": 8,
-      "gas": 8657111
+      "gas": 8474279
     },
     {
       "n": 1,
       "K": 12,
-      "gas": 2447549
+      "gas": 2163510
     },
     {
       "n": 4,
       "K": 12,
-      "gas": 6664445
+      "gas": 6381111
     },
     {
       "n": 8,
       "K": 12,
-      "gas": 12265353
+      "gas": 11982970
     }
   ],
   "results": [
     {
       "label": "benchClear n=1 K=4",
-      "gas": 1009097
+      "gas": 923759
     },
     {
       "label": "benchClear n=1 K=8",
-      "gas": 1719765
+      "gas": 1535078
     },
     {
       "label": "benchClear n=2 K=8",
-      "gas": 2710760
+      "gas": 2526333
     },
     {
       "label": "benchClear n=4 K=8",
-      "gas": 4692805
+      "gas": 4508903
     },
     {
       "label": "benchClear n=8 K=8",
-      "gas": 8657111
+      "gas": 8474279
     },
     {
       "label": "benchClear n=1 K=12",
-      "gas": 2447549
+      "gas": 2163510
     },
     {
       "label": "benchClear n=4 K=12",
-      "gas": 6664445
+      "gas": 6381111
     },
     {
       "label": "benchClear FULL reveal",
-      "gas": 12265353
+      "gas": 11982970
     },
     {
       "label": "CLEARING CORRECTNESS",

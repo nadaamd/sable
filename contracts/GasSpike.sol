@@ -23,12 +23,16 @@ import "@coti-io/coti-contracts/contracts/utils/mpc/MpcCore.sol";
 /// error raised. Any new mux call must respect this.
 contract GasSpike {
     struct Order {
+        address trader;
         ctBool isBuy;
         ctUint64 limit;
         ctUint64 size;
     }
 
     Order[] public orders;
+
+    /// Per-order fill from the last allocation, each readable only by its own trader.
+    ctUint64[] public fills;
 
     // Storage sinks keep results live so no branch of the loop is dead code.
     ctUint64 public sink64;
@@ -48,6 +52,7 @@ contract GasSpike {
     function seedOrder(itBool calldata isBuy, itUint64 calldata limit, itUint64 calldata size) external {
         orders.push(
             Order({
+                trader: msg.sender,
                 isBuy: MpcCore.offBoard(MpcCore.validateCiphertext(isBuy)),
                 limit: MpcCore.offBoard(MpcCore.validateCiphertext(limit)),
                 size: MpcCore.offBoard(MpcCore.validateCiphertext(size))
@@ -57,6 +62,16 @@ contract GasSpike {
 
     function orderCount() external view returns (uint256) {
         return orders.length;
+    }
+
+    function fillCount() external view returns (uint256) {
+        return fills.length;
+    }
+
+    /// Spike-only: wipe the book so a second scenario can be seeded.
+    function resetOrders() external {
+        delete orders;
+        delete fills;
     }
 
     // ------------------------------------------------------- correctness probe
@@ -138,6 +153,29 @@ contract GasSpike {
         sink64 = MpcCore.offBoard(acc);
     }
 
+    /// mul against a PUBLIC multiplier — the pro-rata numerator, since matched volume is
+    /// revealed by design.
+    function benchMulPublic(uint256 iters) external {
+        gtUint64 a = MpcCore.onBoard(orders[0].size);
+        gtUint64 g;
+        for (uint256 i = 0; i < iters; i++) {
+            g = MpcCore.mul(a, uint64(85));
+        }
+        sink64 = MpcCore.offBoard(g);
+    }
+
+    /// Secret / secret division — the pro-rata denominator stays encrypted, so this is
+    /// the operation whose cost decides whether pro-rata allocation is affordable.
+    function benchDiv(uint256 iters) external {
+        gtUint64 a = MpcCore.onBoard(orders[0].size);
+        gtUint64 b = MpcCore.setPublic64(uint64(7));
+        gtUint64 g;
+        for (uint256 i = 0; i < iters; i++) {
+            g = MpcCore.div(a, b);
+        }
+        sink64 = MpcCore.offBoard(g);
+    }
+
     function benchMin(uint256 iters) external {
         gtUint64 a = MpcCore.onBoard(orders[0].size);
         gtUint64 b = MpcCore.onBoard(orders[0].limit);
@@ -169,21 +207,62 @@ contract GasSpike {
     ///
     /// No Solidity branch ever touches an encrypted value: every conditional is a mux.
     function benchClear(uint256 n, uint64[] calldata ticks, bool reveal) external {
-        uint256 K = ticks.length;
+        (gtUint64[] memory demand, gtUint64[] memory supply,,,) = _curves(n, ticks);
+        (gtUint64 bestPrice, gtUint64 bestVol) = _argmax(demand, supply, ticks);
 
-        gtUint64[] memory demand = new gtUint64[](K);
-        gtUint64[] memory supply = new gtUint64[](K);
+        if (reveal) {
+            // Price discovery is the public good: clearing price and total volume go
+            // public, while every individual order stays sealed forever.
+            lastClearingPrice = MpcCore.decrypt(bestPrice);
+            lastMatchedVolume = MpcCore.decrypt(bestVol);
+        } else {
+            sink64 = MpcCore.offBoard(bestVol);
+        }
+    }
+
+    /// Builds the encrypted demand and supply curves over the public price grid.
+    ///
+    /// Also hands back the onboarded order fields. Garbled handles stay valid for the
+    /// whole transaction, so a caller that needs the orders again (allocation) must reuse
+    /// these rather than onboarding a second time — re-onboarding costs 3 boundary
+    /// crossings per order, ~143k gas, for data already in the garbled domain.
+    function _curves(uint256 n, uint64[] calldata ticks)
+        internal
+        returns (
+            gtUint64[] memory demand,
+            gtUint64[] memory supply,
+            gtBool[] memory isBuyG,
+            gtUint64[] memory limitG,
+            gtUint64[] memory sizeG
+        )
+    {
+        uint256 K = ticks.length;
+        demand = new gtUint64[](K);
+        supply = new gtUint64[](K);
+        isBuyG = new gtBool[](n);
+        limitG = new gtUint64[](n);
+        sizeG = new gtUint64[](n);
+
+        // One encrypted zero, shared by every accumulator. Garbled values are immutable —
+        // every operation returns a fresh handle — so sharing the handle is safe, and it
+        // saves 2*(K-1) setPublic64 calls.
+        gtUint64 zero = MpcCore.setPublic64(uint64(0));
         for (uint256 k = 0; k < K; k++) {
-            demand[k] = MpcCore.setPublic64(uint64(0));
-            supply[k] = MpcCore.setPublic64(uint64(0));
+            demand[k] = zero;
+            supply[k] = zero;
         }
 
-        // Onboard each order ONCE, then amortise it across all K ticks.
+        // Onboard each order ONCE, then amortise it across all K ticks. Onboarding inside
+        // the tick loop would cost 3 boundary crossings per (order, tick) — ~2.4x total.
         for (uint256 i = 0; i < n; i++) {
             gtBool isBuy = MpcCore.onBoard(orders[i].isBuy);
             gtBool isSell = MpcCore.not(isBuy);
             gtUint64 limit = MpcCore.onBoard(orders[i].limit);
             gtUint64 size = MpcCore.onBoard(orders[i].size);
+
+            isBuyG[i] = isBuy;
+            limitG[i] = limit;
+            sizeG[i] = size;
 
             for (uint256 k = 0; k < K; k++) {
                 // mux is INVERTED (see probeMux): mux(bit, a, b) == bit ? b : a.
@@ -195,11 +274,16 @@ contract GasSpike {
                 supply[k] = MpcCore.add(supply[k], MpcCore.mux(asks, uint64(0), size));
             }
         }
+    }
 
-        // Encrypted argmax over the K ticks — a mux chain, no branching.
-        gtUint64 bestVol = MpcCore.setPublic64(uint64(0));
-        gtUint64 bestPrice = MpcCore.setPublic64(uint64(0));
-        for (uint256 k = 0; k < K; k++) {
+    /// Encrypted argmax over the K ticks — a mux chain, no branching.
+    function _argmax(gtUint64[] memory demand, gtUint64[] memory supply, uint64[] calldata ticks)
+        internal
+        returns (gtUint64 bestPrice, gtUint64 bestVol)
+    {
+        bestVol = MpcCore.setPublic64(uint64(0));
+        bestPrice = MpcCore.setPublic64(uint64(0));
+        for (uint256 k = 0; k < ticks.length; k++) {
             gtUint64 crossed = MpcCore.min(demand[k], supply[k]);
             gtBool better = MpcCore.gt(crossed, bestVol);
             // Inverted mux again: keep `bestVol` unless `better`, in which case `crossed`.
@@ -207,14 +291,84 @@ contract GasSpike {
             // ticks[k] is public, so the RHS-public overload also spares a setPublic64.
             bestPrice = MpcCore.mux(better, bestPrice, ticks[k]);
         }
+    }
 
-        if (reveal) {
-            // Price discovery is the public good: clearing price and total volume go
-            // public, while every individual order stays sealed forever.
-            lastClearingPrice = MpcCore.decrypt(bestPrice);
-            lastMatchedVolume = MpcCore.decrypt(bestVol);
-        } else {
-            sink64 = MpcCore.offBoard(bestVol);
+    // --------------------------------------------------- pro-rata allocation
+
+    /// @notice Clears the batch, then allocates each order's fill pro-rata to its size,
+    ///         and offboards it so that ONLY that order's trader can read it.
+    ///
+    /// The allocation rule is, for every order:
+    ///
+    ///     fill = participates ? size * matched / sideTotal : 0
+    ///
+    /// where `sideTotal` is the order's own side aggregate at the clearing price. This
+    /// needs no branch on which side is long: the short side satisfies
+    /// sideTotal == matched, so its ratio is exactly 1 and it fills completely. Which
+    /// side is long is itself encrypted, so being able to avoid that branch is what
+    /// makes encrypted pro-rata tractable at all.
+    ///
+    /// Rounding: integer division truncates, so the fills can sum to slightly less than
+    /// the matched volume. That residual dust stays unmatched — the same convention as a
+    /// real call auction, and it never over-allocates.
+    ///
+    /// Bound: `size * matched` must fit in 64 bits. With COTI's 6-decimal cap on private
+    /// tokens that allows sizes and volumes up to ~4.2e9 base units each.
+    function clearAndAllocate(uint256 n, uint64[] calldata ticks) external {
+        (
+            gtUint64[] memory demand,
+            gtUint64[] memory supply,
+            gtBool[] memory isBuyG,
+            gtUint64[] memory limitG,
+            gtUint64[] memory sizeG
+        ) = _curves(n, ticks);
+        (gtUint64 bestPrice, gtUint64 bestVol) = _argmax(demand, supply, ticks);
+
+        // Price discovery is deliberately public; individual orders never are.
+        uint64 p = MpcCore.decrypt(bestPrice);
+        uint64 matched = MpcCore.decrypt(bestVol);
+        lastClearingPrice = p;
+        lastMatchedVolume = matched;
+
+        delete fills;
+        // Branching on `matched` is legal: it is a public value at this point.
+        if (matched == 0) return;
+
+        // With the clearing price public, its grid index is public too.
+        uint256 kStar = type(uint256).max;
+        for (uint256 k = 0; k < ticks.length; k++) {
+            if (ticks[k] == p) {
+                kStar = k;
+                break;
+            }
+        }
+        require(kStar != type(uint256).max, "clearing price off grid");
+
+        gtUint64 dTot = demand[kStar];
+        gtUint64 sTot = supply[kStar];
+
+        for (uint256 i = 0; i < n; i++) {
+            // Reuse the handles from _curves — these orders are already in the garbled
+            // domain within this transaction.
+            gtBool isBuy = isBuyG[i];
+            gtUint64 limit = limitG[i];
+            gtUint64 size = sizeG[i];
+
+            // In the money at the clearing price? p is public, so these are the cheap
+            // compare-against-public variants.
+            gtBool inBuy = MpcCore.and(isBuy, MpcCore.ge(limit, p));
+            gtBool inSell = MpcCore.and(MpcCore.not(isBuy), MpcCore.le(limit, p));
+            gtBool participates = MpcCore.or(inBuy, inSell);
+
+            // Inverted mux: isBuy ? dTot : sTot.
+            gtUint64 sideTotal = MpcCore.mux(isBuy, sTot, dTot);
+
+            // No division-by-zero guard needed: matched > 0 means min(dTot, sTot) > 0 at
+            // kStar, so both side totals are strictly positive here.
+            gtUint64 fill = MpcCore.div(MpcCore.mul(size, matched), sideTotal);
+
+            // Inverted mux: participates ? fill : 0.
+            fills.push(MpcCore.offBoardToUser(MpcCore.mux(participates, uint64(0), fill), orders[i].trader));
         }
     }
 }

@@ -53,6 +53,17 @@ Demand is non-increasing in `k` and supply is non-decreasing, so the curves cros
 once — `k*` is the volume-maximising price, not a heuristic. No Solidity branch ever
 touches an encrypted value: every conditional is a `mux`.
 
+The long side is then rationed pro-rata to order size, still encrypted:
+
+```
+fill = participates ? size * matched / sideTotal : 0
+```
+
+This needs no branch on which side is long — which is essential, because that fact is
+itself encrypted. The short side satisfies `sideTotal == matched`, so its ratio is exactly
+1 and it fills completely. Each fill is offboarded to its own trader's key: only they can
+read it.
+
 ### What leaks, and what never does
 
 | Public | Encrypted forever |
@@ -70,8 +81,10 @@ Price discovery is a public good. Sable produces it without anyone showing their
 Day-1 de-risking spike is complete and the architecture is validated on testnet — see
 **[SPIKE.md](SPIKE.md)** for measured gas, the cost model, and the correctness proof.
 
-Headline: clearing 20 orders over 12 price ticks costs 29.1M gas, 24% of a block.
-Single-transaction clearing is viable; no sharding required.
+Headline: clearing 20 orders over 12 price ticks, *including* encrypted pro-rata
+allocation of every fill, costs 33.7M gas — 28% of a block. Single-transaction clearing is
+viable; no sharding required. Both the clearing price and every individual fill have been
+verified against hand-computed books.
 
 ## Repo
 

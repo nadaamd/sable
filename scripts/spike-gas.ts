@@ -42,6 +42,25 @@ const BOOK: Array<{ isBuy: boolean; limit: number; size: number }> = [
 const EXPECTED_PRICE = 100n
 const EXPECTED_VOLUME = 100n
 
+/**
+ * Second scenario, for pro-rata: a book whose cross is DELIBERATELY unbalanced, since
+ * a rationing rule is untested on a balanced one.
+ *
+ * At the clearing tick 101: demand = 100 (the 102 and 101 buys), supply = 85, so
+ * matched = 85 and the buy side is rationed to 85%. Sizes are chosen so every quotient
+ * is an exact integer — no rounding ambiguity in the assertions.
+ */
+const PRORATA_BOOK: Array<{ isBuy: boolean; limit: number; size: number; expect: bigint }> = [
+  { isBuy: true, limit: 102, size: 60, expect: 51n }, // 60 * 85 / 100
+  { isBuy: true, limit: 101, size: 40, expect: 34n }, // 40 * 85 / 100
+  { isBuy: true, limit: 100, size: 20, expect: 0n }, //  out of the money at 101
+  { isBuy: false, limit: 99, size: 30, expect: 30n }, // short side -> full fill
+  { isBuy: false, limit: 100, size: 30, expect: 30n },
+  { isBuy: false, limit: 101, size: 25, expect: 25n },
+]
+const PRORATA_PRICE = 101n
+const PRORATA_VOLUME = 85n
+
 type State = { address?: string; seeded?: number }
 type Measurement = { label: string; gas: number; note?: string }
 
@@ -49,6 +68,8 @@ const results: Measurement[] = []
 const readState = (): State => (fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, "utf8")) : {})
 const writeState = (s: State) => fs.writeFileSync(STATE, JSON.stringify(s, null, 2))
 const fmt = (n: number | bigint) => Number(n).toLocaleString("en-US")
+/** JSON.stringify replacer: the expected-fill literals are BigInt. */
+const bigintSafe = (_k: string, v: any) => (typeof v === "bigint" ? v.toString() : v)
 
 async function main() {
   const [owner] = await setupAccounts()
@@ -69,6 +90,8 @@ async function main() {
   if (STAGE === "probe" || STAGE === "all") await runProbes(owner, spike, state)
   if (STAGE === "micro" || STAGE === "all") await runMicro(owner, spike)
   if (STAGE === "kernel" || STAGE === "all") await runKernel(owner, spike, state)
+  // Last: it replaces the book with the unbalanced scenario.
+  if (STAGE === "prorata" || STAGE === "all") await runProRata(owner, spike, state)
 
   const balEnd = await provider.getBalance(owner.address)
   report(balStart, balEnd)
@@ -192,6 +215,8 @@ async function runMicro(owner: any, spike: any) {
     ["and(gtBool, gtBool)", "benchAnd", []],
     ["mux(cond, gt, public 0)", "benchMuxPublicZero", []],
     ["add(gtUint64, gtUint64)", "benchAdd", []],
+    ["mul(gtUint64, public)", "benchMulPublic", []],
+    ["div(gtUint64, gtUint64)", "benchDiv", []],
     ["min(gtUint64, gtUint64)", "benchMin", []],
     ["offBoardToUser", "benchOffBoardToUser", []],
   ]
@@ -268,6 +293,79 @@ async function runKernel(owner: any, spike: any, state: State) {
 
   if (points.length >= 4) fitAndSize(points)
   fs.writeFileSync(REPORT, JSON.stringify({ ticks: TICKS, book: BOOK, points, results }, null, 2))
+}
+
+// ---------------------------------------------------------- pro-rata allocation
+
+async function runProRata(owner: any, spike: any, state: State) {
+  const addr = await spike.getAddress()
+  const selector = spike.seedOrder.fragment.selector
+  const n = PRORATA_BOOK.length
+
+  console.log(`[prorata] swap in the unbalanced book (${n} orders)`)
+  await measure("resetOrders", spike, "resetOrders", [], 2_000_000)
+  state.seeded = 0
+  writeState(state)
+
+  for (const o of PRORATA_BOOK) {
+    const isBuy = await encrypt(owner, o.isBuy ? 1n : 0n, addr, selector)
+    const limit = await encrypt(owner, BigInt(o.limit), addr, selector)
+    const size = await encrypt(owner, BigInt(o.size), addr, selector)
+    const gas = await measure(
+      `seedOrder ${o.isBuy ? "BUY " : "SELL"} ${o.limit}x${o.size}`,
+      spike,
+      "seedOrder",
+      [isBuy, limit, size],
+      6_000_000,
+    )
+    if (gas < 0) throw new Error(`Failed to seed the pro-rata book.`)
+  }
+
+  // Same (n, K) with clearing only, so the allocation overhead can be isolated.
+  console.log(`\n[prorata] baseline vs allocation, n=${n} K=${TICKS.length}`)
+  const clearOnly = await measure(`benchClear (no allocation)`, spike, "benchClear", [n, TICKS, false], BLOCK_GAS_LIMIT)
+  const withAlloc = await measure(`clearAndAllocate`, spike, "clearAndAllocate", [n, TICKS], BLOCK_GAS_LIMIT)
+
+  if (clearOnly > 0 && withAlloc > 0) {
+    const overhead = withAlloc - clearOnly
+    console.log(`  -> allocation overhead ${fmt(overhead)} gas total, ${fmt(Math.round(overhead / n))} gas/order`)
+    results.push({ label: "PRORATA OVERHEAD per order", gas: Math.round(overhead / n) })
+  }
+  if (withAlloc < 0) {
+    console.log(`  -> allocation FAILED — see the error above`)
+    return
+  }
+
+  // Clearing outcome must still be right.
+  const price = await spike.lastClearingPrice()
+  const volume = await spike.lastMatchedVolume()
+  const crossOk = price === PRORATA_PRICE && volume === PRORATA_VOLUME
+  console.log(
+    `\n[prorata] cross: price ${price} volume ${volume} — ${crossOk ? "CORRECT" : `WRONG, expected ${PRORATA_PRICE}/${PRORATA_VOLUME}`}`,
+  )
+
+  // And every individual fill, decrypted with the trader's own AES key.
+  console.log(`[prorata] fills (decrypted by the owning trader):`)
+  let allOk = crossOk
+  let sum = 0n
+  for (let i = 0; i < n; i++) {
+    const ct = await spike.fills(i)
+    const got = BigInt(await owner.decryptValue(ct))
+    const o = PRORATA_BOOK[i]
+    const ok = got === o.expect
+    if (!ok) allOk = false
+    if (o.isBuy) sum += got
+    console.log(
+      `  ${o.isBuy ? "BUY " : "SELL"} ${String(o.limit).padStart(3)}x${String(o.size).padStart(3)}` +
+        `  fill ${String(got).padStart(3)}  expected ${String(o.expect).padStart(3)}  ${ok ? "ok" : "MISMATCH"}`,
+    )
+  }
+  console.log(`  buy-side fills sum to ${sum} (matched volume ${volume}${sum === volume ? ", no dust" : `, dust ${volume - sum}`})`)
+
+  const verdict = allOk ? "ENCRYPTED PRO-RATA CORRECT" : "ENCRYPTED PRO-RATA WRONG"
+  console.log(`\n  -> ${verdict}`)
+  results.push({ label: "PRORATA CORRECTNESS", gas: 0, note: verdict })
+  fs.writeFileSync(REPORT, JSON.stringify({ ticks: TICKS, prorataBook: PRORATA_BOOK, results }, bigintSafe, 2))
 }
 
 /** Least squares on gas = a + b*n + c*n*K + d*K, then answer the sizing question. */

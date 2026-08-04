@@ -8,6 +8,8 @@
     "compile": "hardhat compile",
     "spike": "hardhat run scripts/spike-gas.ts --network coti-testnet",
     "e2e": "hardhat run scripts/cross-e2e.ts --network coti-testnet",
+    "agents": "hardhat run scripts/run-agents.ts --network coti-testnet",
+    "check": "ts-node scripts/agents/check-offline.ts",
     "wallet": "hardhat run scripts/new-wallet.ts --network coti-testnet"
   },
   "devDependencies": {

@@ -21,3 +21,4 @@ ignition/deployments/chain-31337
 spike-state.json
 
 cross-e2e-state.json
+agents-state.json

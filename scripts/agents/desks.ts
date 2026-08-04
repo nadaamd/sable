@@ -52,5 +52,10 @@ export const MANDATES: Mandate[] = [
 /** How long a batch accepts orders once the first one lands. */
 export const COMMIT_WINDOW = 150
 
-/** Reward epoch length for the RFQ messaging channel. */
-export const MESSAGING_EPOCH = 3600
+/**
+ * Reward epoch length for the RFQ messaging channel. Kept short so a demo run actually
+ * reaches a claimable epoch: COTI's PrivateMessaging only pays out an epoch once it has
+ * ended, and it pays in proportion to the encrypted cells a desk stored. The protocol
+ * literally pays the desks for talking to each other privately.
+ */
+export const MESSAGING_EPOCH = 120

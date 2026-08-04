@@ -28,6 +28,35 @@ decrypting a single order.
 
 The market publishes a price. No participant reveals their hand.
 
+### The desks
+
+Each desk is an autonomous agent carrying a **private mandate** — target size, reservation
+price, how it wants to ladder — that never leaves its own machine. Strategy is
+deterministic, with no model calls, so a run is reproducible and every number in it is
+checkable.
+
+Before committing, desks exchange encrypted indications of interest over COTI's
+`PrivateMessaging`: *"there is interest this size on this side"*, and deliberately no price.
+Only the recipient can decrypt one.
+
+What the RFQ changes is **size, not price**. Sable is a uniform-price auction, so shading a
+limit mostly risks the fill without improving execution — bidding your true reservation
+value is the rational move, a property of the mechanism rather than a heuristic. What the
+RFQ actually buys is knowing whether to commit capital at all:
+
+```
+committed = clamp(visible opposing interest, probe floor, own target)
+```
+
+Never escrow against counterparty interest that isn't there. In the verified run, Atlas
+wants 70 but can only see 65 of supply, so it commits 65 and locks 6,639 quote units
+instead of 7,150 — **511 units of capital freed, with no loss of fill.** And the IOI has to
+be encrypted, or announcing "I need to buy 70" is just telling the market to raise its
+price.
+
+The messaging layer pays for itself: `PrivateMessaging` rewards each desk in proportion to
+the encrypted cells it stored, so the protocol funds the private negotiation it depends on.
+
 ### Why a batch auction, not an order book
 
 Continuous matching makes latency an edge again and re-imports MEV. A periodic call
@@ -91,57 +120,83 @@ Price discovery is a public good. Sable produces it without anyone showing their
 
 ## Status
 
-**`SableCross.sol` is live on COTI testnet and passes an end-to-end test with three
-independent traders.** Sealed orders, escrow, encrypted clearing, pro-rata allocation, real
-PrivateERC20 settlement, and cross-trader privacy are all verified against a hand-computed
-book — see `scripts/cross-e2e.ts`.
+**The full loop runs on COTI testnet, verified end to end.** Three autonomous desks
+negotiate privately, commit sealed orders, clear, and settle in real PrivateERC20 — with
+every result checked against an independent plaintext implementation of the same mechanism
+(`scripts/agents/reference.ts`) rather than against hardcoded values.
 
-What the test proves, on chain:
+One `npm run agents` run, verified:
 
-- clearing price 101 and matched volume 85 on a book no one could read
-- all six fills exact (51 / 34 / 0 / 30 / 30 / 25), each decrypted only by its own trader
-- fills sum to the matched volume on **both** sides — the invariant that keeps the contract
-  solvent
-- net token movement exact for every trader (A +26 base / −2,626 quote, B +4 / −404,
-  C −30 / +3,030)
-- trader B attempting to decrypt trader A's fill of 51 recovers garbage, not the value
+```
+[rfq]     6 encrypted IOIs exchanged, 3.12M gas
+[submit]  Atlas    inbox: BUY 20, SELL 65  -> saw only 65 vs target 70, commits 65
+          Borealis inbox: BUY 70, SELL 65  -> commits 20 in full
+          Cygnus   inbox: BUY 70, BUY 20   -> commits 65 in full
+[clear]   price 101, volume 65, 13.13M gas
+          fills 37 / 28 / 0 / 20 / 35 / 10   all matching the reference engine
+[claim]   Atlas  +65 base / −6,565 quote
+          Borealis  0 / 0        (unfilled, fully refunded)
+          Cygnus −65 base / +6,565 quote
+[capital] Atlas locked 6,639 instead of 7,150 — 511 units freed by the RFQ
+[privacy] Cygnus cannot recover Atlas's fill of 37
+[rewards] each desk claimed 0.0167 COTI for the encrypted cells it stored
+```
 
-Gas, measured: `submitOrder` 2.53M, `clear` 13.1M for 6 orders over 12 ticks, `claim` 2.73M
-per trader. Notably the encrypted **token transfers dominate**, not the clearing kernel —
-a 256-bit PrivateERC20 transfer costs roughly 1.2M against ~13k for a 64-bit garbled
-compute op. Settlement is pull-based precisely so that cost sits with each trader rather
-than in the clearing transaction.
+The invariants that matter all hold on chain: fills sum to the matched volume on **both**
+sides, escrow equals payout in both tokens, no order is overfilled, and a desk attempting
+to decrypt another's fill gets noise.
+
+Gas, measured: `submitOrder` 2.53M, `clear` 13.1M for 6 orders over 12 ticks, `claim`
+1.4–4.0M depending on order count. Notably the encrypted **token transfers dominate**, not
+the clearing kernel — a 256-bit PrivateERC20 transfer costs roughly 1.2M against ~13k for a
+64-bit garbled compute op. Settlement is pull-based precisely so that cost sits with each
+desk rather than in the clearing transaction.
 
 The day-1 de-risking spike that sized all of this is in **[SPIKE.md](SPIKE.md)**: the cost
-model, per-operation gas, and the two traps that would otherwise have shipped silently.
+model, per-operation gas, and the traps that would otherwise have shipped silently.
 
 ## Repo
 
 ```
-contracts/SableCross.sol      the market: batches, escrow, clearing, allocation, claim
-contracts/test/TestToken.sol   PrivateERC20 with an open mint, for testnet runs
-contracts/GasSpike.sol         the clearing kernel, instrumented for measurement
-scripts/cross-e2e.ts           three-trader end-to-end test with assertions
-scripts/spike-gas.ts           gas curve + correctness harness
-scripts/new-wallet.ts          testnet wallet bootstrap
-SPIKE.md                       measured results and design decisions
+contracts/SableCross.sol         the market: batches, escrow, clearing, allocation, claim
+contracts/test/TestToken.sol     PrivateERC20 with an open mint, for testnet runs
+contracts/test/DeskMessaging.sol deployable PrivateMessaging — the desks' RFQ channel
+contracts/GasSpike.sol           the clearing kernel, instrumented for measurement
+
+scripts/agents/desks.ts          the three private mandates and the market grid
+scripts/agents/strategy.ts       deterministic decision layer, pure and testable
+scripts/agents/reference.ts      plaintext clearing engine — the oracle for the contract
+scripts/agents/desk.ts           a desk's on-chain behaviour: RFQ, submit, claim
+scripts/agents/check-offline.ts  strategy + reference checks, no network, no gas
+scripts/run-agents.ts            the full agent run
+scripts/cross-e2e.ts             three-trader contract test with assertions
+scripts/spike-gas.ts             gas curve + correctness harness
+SPIKE.md                         measured results and design decisions
 ```
 
 ## Getting started
 
 ```bash
 npm install
+npm run check                  # strategy + reference engine, offline, no gas
 npx hardhat compile
 npm run wallet                 # then fund the printed address free at faucet.coti.io
-
-# three-trader end-to-end run (funds two more wallets from the first)
-STAGE=setup  npm run e2e       # tokens, mint, approvals, deploy the cross
-STAGE=submit npm run e2e       # six sealed orders
-STAGE=clear  npm run e2e       # waits out the commit window, clears, asserts fills
-STAGE=claim  npm run e2e       # settles, asserts balances and cross-trader privacy
 ```
 
-Staged because the commit window is a wall-clock deadline; each stage is resumable.
+The full agent run (it funds the other two desks from the first wallet):
+
+```bash
+STAGE=setup   npm run agents   # tokens, mint, RFQ channel, the cross, approvals
+STAGE=rfq     npm run agents   # encrypted indications of interest
+STAGE=submit  npm run agents   # desks read their inboxes, decide, seal orders
+STAGE=clear   npm run agents   # waits out the commit window, clears, verifies
+STAGE=claim   npm run agents   # settles, checks balances, privacy and capital saved
+STAGE=rewards npm run agents   # claims messaging rewards for the finished epoch
+```
+
+`npm run e2e` runs the same staged flow against the contract directly, without the agent
+layer. Both are staged and resumable because the commit window and the reward epoch are
+wall-clock deadlines.
 
 Testnet only. Keys live in `.env`, which is gitignored — never reuse them on mainnet.
 

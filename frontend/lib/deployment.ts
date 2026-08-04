@@ -10,8 +10,8 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://testnet.coti.
 export const EXPLORER = "https://testnet.cotiscan.io"
 export const CHAIN_ID = 7082400
 
-export const CROSS_ADDRESS = process.env.NEXT_PUBLIC_CROSS ?? "0x99e48161B780b869884Ab5845b0eC41ca54eb28a"
-export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0xbc0828b30BAA9a086fD64773CFa8cc63996ffE37"
+export const CROSS_ADDRESS = process.env.NEXT_PUBLIC_CROSS ?? "0x48E8f6253606f1A728028e2fe1bd15C5FE054FE3"
+export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0xe721782E29bd6A987E257EEcabf776e6eA1278aB"
 
 export type DeskKey = { name: string; address: string; aesKey: string }
 

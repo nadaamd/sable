@@ -135,6 +135,20 @@ export default function Page() {
         </div>
       )}
 
+      {/* A wall of █ on first load reads as a broken page unless we say otherwise. */}
+      {market && market.batch.orders.length > 0 && active.length === 0 && (
+        <div
+          className="panel mb-4 px-3 py-2 text-[11px] leading-relaxed"
+          style={{ borderColor: "var(--accent)" }}
+        >
+          <span style={{ color: "var(--accent)" }}>Everything below is sealed on chain.</span>{" "}
+          This is the whole book, fetched with public calls and unreadable — side, limit, size and
+          fill are ciphertexts. Unlock a desk under{" "}
+          <span className="text-[var(--ink)]">View as desk</span> to decrypt that desk&apos;s rows;
+          every other row stays █, including to us.
+        </div>
+      )}
+
       {market && batches.length > 1 && (
         <div className="mb-4 flex items-center gap-2 text-[11px]">
           <span className="text-[var(--dim)]">batch</span>

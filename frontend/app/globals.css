@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #08090b;
+  --panel: #0e1013;
+  --line: #1c2027;
+  --ink: #e6e8ea;
+  --dim: #6d757e;
+  --seal: #2b313a;
+  --buy: #3fb950;
+  --sell: #f85149;
+  --accent: #d9a94a;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A sealed value: present on chain, addressable, and unreadable. */
+.sealed {
+  color: var(--seal);
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  color: var(--dim);
+  font-weight: 500;
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+th,
+td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+input {
+  background: #060709;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 5px 8px;
+  outline: none;
+  font: inherit;
+}
+
+input:focus {
+  border-color: var(--accent);
+}
+
+button {
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  background: transparent;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

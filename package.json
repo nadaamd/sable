@@ -10,6 +10,7 @@
     "e2e": "hardhat run scripts/cross-e2e.ts --network coti-testnet",
     "agents": "hardhat run scripts/run-agents.ts --network coti-testnet",
     "check": "ts-node scripts/agents/check-offline.ts",
+    "frontend:config": "ts-node scripts/frontend-config.ts",
     "wallet": "hardhat run scripts/new-wallet.ts --network coti-testnet"
   },
   "devDependencies": {

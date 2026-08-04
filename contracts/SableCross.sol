@@ -42,9 +42,17 @@ contract SableCross {
 
     struct Order {
         address trader;
+        // Network-key copies: opaque to everyone, and what the clearing kernel consumes.
         ctBool isBuy;
         ctUint64 limit;
         ctUint64 size;
+        // Mirrors under the trader's own key, so a desk can audit its open orders against
+        // the chain instead of trusting its local state. Worth ~210k gas per submission,
+        // and it is what lets a client show you your row while every other row stays
+        // unreadable — including to us.
+        ctBool isBuyMine;
+        ctUint64 limitMine;
+        ctUint64 sizeMine;
         // Written at clearing.
         //
         // `fill` is offboarded to the trader's AES key: only they can read it, and nothing
@@ -172,6 +180,9 @@ contract SableCross {
                 isBuy: MpcCore.offBoard(isBuy),
                 limit: MpcCore.offBoard(limit),
                 size: MpcCore.offBoard(size),
+                isBuyMine: MpcCore.offBoardToUser(isBuy, msg.sender),
+                limitMine: MpcCore.offBoardToUser(limit, msg.sender),
+                sizeMine: MpcCore.offBoardToUser(size, msg.sender),
                 fill: ctUint64.wrap(0),
                 baseOut: ctUint64.wrap(0),
                 quoteOut: ctUint64.wrap(0),
@@ -497,5 +508,24 @@ contract SableCross {
 
     function ordersOfTrader(uint256 batchId, address trader) external view returns (uint256[] memory) {
         return _traderOrders[batchId][trader];
+    }
+
+    /**
+     * @notice Everything a client needs to render one row of the blotter.
+     *
+     * The ciphertexts returned here are all under `trader`'s key. Anyone may read the call;
+     * only the owning desk can decrypt the result. That is the whole design in one getter:
+     * the book is public, and unreadable.
+     *
+     * Index the result by POSITION — ethers returns a Result that is also an Array, so
+     * `Array.prototype.fill` shadows the `fill` output.
+     */
+    function sealedOrder(uint256 batchId, uint256 index)
+        external
+        view
+        returns (address trader, ctBool isBuy, ctUint64 limit, ctUint64 size, ctUint64 fill, bool claimed)
+    {
+        Order storage o = _orders[batchId][index];
+        return (o.trader, o.isBuyMine, o.limitMine, o.sizeMine, o.fill, o.claimed);
     }
 }

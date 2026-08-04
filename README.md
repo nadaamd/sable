@@ -172,6 +172,8 @@ scripts/run-agents.ts            the full agent run
 scripts/cross-e2e.ts             three-trader contract test with assertions
 scripts/spike-gas.ts             gas curve + correctness harness
 SPIKE.md                         measured results and design decisions
+
+frontend/                        read-only terminal — the sealed book, live
 ```
 
 ## Getting started
@@ -197,6 +199,16 @@ STAGE=rewards npm run agents   # claims messaging rewards for the finished epoch
 `npm run e2e` runs the same staged flow against the contract directly, without the agent
 layer. Both are staged and resumable because the commit window and the reward epoch are
 wall-clock deadlines.
+
+Then the terminal:
+
+```bash
+npm run frontend:config        # writes frontend/.env.local with addresses + desk keys
+cd frontend && npm install && npm run dev
+```
+
+See **[frontend/README.md](frontend/README.md)**. It is read-only, needs no wallet, and opens
+on a fully sealed book — unlocking a desk key is what turns █ into numbers.
 
 Testnet only. Keys live in `.env`, which is gitignored — never reuse them on mainnet.
 

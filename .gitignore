@@ -19,3 +19,5 @@ ignition/deployments/chain-31337
 
 # Spike ephemeral state (deployed address, seed progress)
 spike-state.json
+
+cross-e2e-state.json

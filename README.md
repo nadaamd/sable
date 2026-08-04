@@ -53,16 +53,29 @@ Demand is non-increasing in `k` and supply is non-decreasing, so the curves cros
 once — `k*` is the volume-maximising price, not a heuristic. No Solidity branch ever
 touches an encrypted value: every conditional is a `mux`.
 
-The long side is then rationed pro-rata to order size, still encrypted:
+### Allocation, and the invariant that keeps it solvent
+
+The long side is then rationed pro-rata to order size, still encrypted. The obvious formula
+— `size * matched / sideTotal` — is subtly wrong, and wrong in a way that would drain the
+contract. The short side satisfies `sideTotal == matched`, so its ratio is exactly 1 and it
+never truncates; the long side rounds down. The two sides then move different quantities of
+base, while the contract holds exactly what was escrowed.
+
+So Sable rounds the *cumulative* share and takes differences:
 
 ```
-fill = participates ? size * matched / sideTotal : 0
+cum_i  = Σ sizes of same-side participants up to and including i
+q_i    = ⌊ cum_i · V / T ⌋
+fill_i = q_i − q_{i−1}
 ```
 
-This needs no branch on which side is long — which is essential, because that fact is
-itself encrypted. The short side satisfies `sideTotal == matched`, so its ratio is exactly
-1 and it fills completely. Each fill is offboarded to its own trader's key: only they can
-read it.
+The quotients telescope, so the fills sum to `⌊T·V/T⌋ = V` **exactly on both sides**, while
+each fill stays within one unit of its ideal share. Conservation of value is enforced by
+the formula, not by a reconciliation pass.
+
+Neither the allocation nor the clearing ever branches on which side is long — essential,
+since that fact is itself encrypted. Each fill is offboarded to its own trader's key: only
+they can read it.
 
 ### What leaks, and what never does
 
@@ -78,21 +91,40 @@ Price discovery is a public good. Sable produces it without anyone showing their
 
 ## Status
 
-Day-1 de-risking spike is complete and the architecture is validated on testnet — see
-**[SPIKE.md](SPIKE.md)** for measured gas, the cost model, and the correctness proof.
+**`SableCross.sol` is live on COTI testnet and passes an end-to-end test with three
+independent traders.** Sealed orders, escrow, encrypted clearing, pro-rata allocation, real
+PrivateERC20 settlement, and cross-trader privacy are all verified against a hand-computed
+book — see `scripts/cross-e2e.ts`.
 
-Headline: clearing 20 orders over 12 price ticks, *including* encrypted pro-rata
-allocation of every fill, costs 33.7M gas — 28% of a block. Single-transaction clearing is
-viable; no sharding required. Both the clearing price and every individual fill have been
-verified against hand-computed books.
+What the test proves, on chain:
+
+- clearing price 101 and matched volume 85 on a book no one could read
+- all six fills exact (51 / 34 / 0 / 30 / 30 / 25), each decrypted only by its own trader
+- fills sum to the matched volume on **both** sides — the invariant that keeps the contract
+  solvent
+- net token movement exact for every trader (A +26 base / −2,626 quote, B +4 / −404,
+  C −30 / +3,030)
+- trader B attempting to decrypt trader A's fill of 51 recovers garbage, not the value
+
+Gas, measured: `submitOrder` 2.53M, `clear` 13.1M for 6 orders over 12 ticks, `claim` 2.73M
+per trader. Notably the encrypted **token transfers dominate**, not the clearing kernel —
+a 256-bit PrivateERC20 transfer costs roughly 1.2M against ~13k for a 64-bit garbled
+compute op. Settlement is pull-based precisely so that cost sits with each trader rather
+than in the clearing transaction.
+
+The day-1 de-risking spike that sized all of this is in **[SPIKE.md](SPIKE.md)**: the cost
+model, per-operation gas, and the two traps that would otherwise have shipped silently.
 
 ## Repo
 
 ```
-contracts/GasSpike.sol     the clearing kernel, instrumented for measurement
-scripts/spike-gas.ts       gas curve + correctness harness
-scripts/new-wallet.ts      testnet wallet bootstrap
-SPIKE.md                   measured results and design decisions
+contracts/SableCross.sol      the market: batches, escrow, clearing, allocation, claim
+contracts/test/TestToken.sol   PrivateERC20 with an open mint, for testnet runs
+contracts/GasSpike.sol         the clearing kernel, instrumented for measurement
+scripts/cross-e2e.ts           three-trader end-to-end test with assertions
+scripts/spike-gas.ts           gas curve + correctness harness
+scripts/new-wallet.ts          testnet wallet bootstrap
+SPIKE.md                       measured results and design decisions
 ```
 
 ## Getting started
@@ -100,13 +132,18 @@ SPIKE.md                   measured results and design decisions
 ```bash
 npm install
 npx hardhat compile
-npx hardhat run scripts/new-wallet.ts --network coti-testnet   # then fund at faucet.coti.io
-STAGE=probe  npm run spike
-STAGE=kernel npm run spike
+npm run wallet                 # then fund the printed address free at faucet.coti.io
+
+# three-trader end-to-end run (funds two more wallets from the first)
+STAGE=setup  npm run e2e       # tokens, mint, approvals, deploy the cross
+STAGE=submit npm run e2e       # six sealed orders
+STAGE=clear  npm run e2e       # waits out the commit window, clears, asserts fills
+STAGE=claim  npm run e2e       # settles, asserts balances and cross-trader privacy
 ```
 
-Testnet only. The generated key lives in `.env`, which is gitignored — never reuse it on
-mainnet.
+Staged because the commit window is a wall-clock deadline; each stage is resumable.
+
+Testnet only. Keys live in `.env`, which is gitignored — never reuse them on mainnet.
 
 ## License
 

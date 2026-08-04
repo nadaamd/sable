@@ -1,0 +1,24 @@
+{
+  "name": "sable",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Sable — the confidential cross for autonomous agents. A sealed-bid batch auction on COTI gcEVM.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "spike": "hardhat run scripts/spike-gas.ts --network coti-testnet",
+    "wallet": "hardhat run scripts/new-wallet.ts --network coti-testnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/node": "^22.20.1",
+    "hardhat": "^2.22.15",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@coti-io/coti-contracts": "^1.0.9",
+    "@coti-io/coti-ethers": "^1.0.5",
+    "dotenv": "^16.4.5"
+  }
+}

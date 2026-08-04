@@ -1,0 +1,139 @@
+{
+  "ticks": [
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106
+  ],
+  "book": [
+    {
+      "isBuy": true,
+      "limit": 103,
+      "size": 50
+    },
+    {
+      "isBuy": true,
+      "limit": 101,
+      "size": 30
+    },
+    {
+      "isBuy": true,
+      "limit": 100,
+      "size": 20
+    },
+    {
+      "isBuy": true,
+      "limit": 98,
+      "size": 10
+    },
+    {
+      "isBuy": false,
+      "limit": 97,
+      "size": 40
+    },
+    {
+      "isBuy": false,
+      "limit": 99,
+      "size": 25
+    },
+    {
+      "isBuy": false,
+      "limit": 100,
+      "size": 35
+    },
+    {
+      "isBuy": false,
+      "limit": 104,
+      "size": 15
+    }
+  ],
+  "points": [
+    {
+      "n": 1,
+      "K": 4,
+      "gas": 1009097
+    },
+    {
+      "n": 1,
+      "K": 8,
+      "gas": 1719765
+    },
+    {
+      "n": 2,
+      "K": 8,
+      "gas": 2710760
+    },
+    {
+      "n": 4,
+      "K": 8,
+      "gas": 4692805
+    },
+    {
+      "n": 8,
+      "K": 8,
+      "gas": 8657111
+    },
+    {
+      "n": 1,
+      "K": 12,
+      "gas": 2447549
+    },
+    {
+      "n": 4,
+      "K": 12,
+      "gas": 6664445
+    },
+    {
+      "n": 8,
+      "K": 12,
+      "gas": 12265353
+    }
+  ],
+  "results": [
+    {
+      "label": "benchClear n=1 K=4",
+      "gas": 1009097
+    },
+    {
+      "label": "benchClear n=1 K=8",
+      "gas": 1719765
+    },
+    {
+      "label": "benchClear n=2 K=8",
+      "gas": 2710760
+    },
+    {
+      "label": "benchClear n=4 K=8",
+      "gas": 4692805
+    },
+    {
+      "label": "benchClear n=8 K=8",
+      "gas": 8657111
+    },
+    {
+      "label": "benchClear n=1 K=12",
+      "gas": 2447549
+    },
+    {
+      "label": "benchClear n=4 K=12",
+      "gas": 6664445
+    },
+    {
+      "label": "benchClear FULL reveal",
+      "gas": 12265353
+    },
+    {
+      "label": "CLEARING CORRECTNESS",
+      "gas": 0,
+      "note": "CORRECT — price 100, volume 100"
+    }
+  ]
+}

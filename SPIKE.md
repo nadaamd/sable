@@ -34,6 +34,29 @@ Max orders in one transaction, budgeting 80% of the 120M block limit:
 | **12** | **67** | **57** |
 | 16 | 52 | 46 |
 
+### Postscript: what the model missed, measured at the bound
+
+These are `GasSpike` numbers, and `SableCross` is not `GasSpike`. Clearing was later measured
+on the deployed contract at `MAX_ORDERS = 32`, K=12 — the configuration whose failure is
+unrecoverable, since an uncleanable batch traps its escrow and freezes the market:
+
+```
+measured   66,651,243 gas   (55.5% of the 120M block limit)
+model      53,484,488 gas   → measured is 24.6% higher
+```
+
+The gap is the per-order work `SableCross` does and `GasSpike` does not: three ciphertext
+writes per order (`fill` under the trader's key, `baseOut`/`quoteOut` under the network key)
+plus their storage. Backed out of both contract measurements it is a constant — 414,109
+gas/order at n=6, 411,461 at n=32, agreeing to 0.6% — so the model's *shape* survived a 5×
+extrapolation in `n`, and only its per-order coefficient was wrong for the shipping contract.
+
+For the deployed contract at K=12: `clear(n) = 778,955 + 2,058,509·n`, giving **~46 orders at
+80% of a block** rather than the 57 above. `MAX_ORDERS = 32` therefore holds, with 1.8×
+headroom — but the row that mattered was verified by measurement, not by this table.
+
+**Extrapolation validates a shape, not a number.**
+
 ## Correctness is verified, not assumed
 
 The spike seeds a book whose clearing is computable by hand, so it tests the algorithm

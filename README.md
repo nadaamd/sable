@@ -156,6 +156,13 @@ the clearing kernel — a 256-bit PrivateERC20 transfer costs roughly 1.2M again
 64-bit garbled compute op. Settlement is pull-based precisely so that cost sits with each
 desk rather than in the clearing transaction.
 
+Clearing has also been measured **at the contract's own bound**, since that is the case whose
+failure is unrecoverable: 32 orders over 12 ticks costs **66,651,243 gas — 55.5% of the block
+limit**, with price, volume and both-sided conservation all matching the reference engine.
+`MAX_ORDERS = 32` ships with 1.8× headroom; ~46 orders fit an 80% budget. That measurement
+came in 24.6% above the kernel model, for a reason traced in
+[SABLE-EXPLAINED.md §9](SABLE-EXPLAINED.md#9-cost-model-and-capacity).
+
 The day-1 de-risking spike that sized all of this is in **[SPIKE.md](SPIKE.md)**: the cost
 model, per-operation gas, and the traps that would otherwise have shipped silently.
 

@@ -395,36 +395,81 @@ coût fixe et chaque desk paie son propre transfert.
 
 ## 9. Modèle de coût et capacité
 
-Ajustement par moindres carrés sur la courbe d'appariement mesurée :
+Ajustement par moindres carrés sur le noyau instrumenté (`GasSpike`), issu du spike du
+premier jour :
 
 ```
-gas(ordres, niveaux) = 132 064 + 164 081·ordres + 103 275·ordres·niveaux + 52 278·niveaux
+noyau(ordres, niveaux) = 132 064 + 408 359·ordres + 103 275·ordres·niveaux + 52 278·niveaux
 ```
 
-Résidu contre les mesures réelles : 0,6 %. Le terme bilinéaire est le noyau proprement dit —
-une passe sur chaque ordre à chaque niveau de prix — et son coefficient est la règle de
-franchissement du §8 rendue visible dans une régression.
+Résidu contre les mesures du noyau lui-même : 0,3 %. Le terme bilinéaire est la passe
+d'appariement proprement dite — une traversée de chaque ordre à chaque niveau de prix — et son
+coefficient est la règle de franchissement du §8 rendue visible dans une régression.
 
-Mesuré, sur testnet :
+Mesuré sur testnet, pour le contrat déployé :
 
 | Action | Gas | Part d'un bloc de 120M |
 |---|---|---|
 | `submitOrder` | ~2,8M | 2 % |
 | Six IOI chiffrés | 3,1M | 3 % |
-| `clear`, 6 ordres × 12 niveaux | 13,13M | 11 % |
+| `clear`, 6 ordres × 12 niveaux | 13 130 009 | 11 % |
+| **`clear`, 32 ordres × 12 niveaux (`MAX_ORDERS`)** | **66 651 243** | **55,5 %** |
 | `claim` | 1,4M – 4,0M | 1–3 % |
 | `rescue` | ~0,5M par ordre | <1 % |
 
-Face à la limite de 120M de gas par bloc, **le modèle** place le plafond autour de 48 ordres à
-12 niveaux de prix. Le modèle, pas une mesure : la plus grande configuration que nous avons
-appariée et mesurée on-chain est le batch 6×12 ci-dessus. Au-delà, la capacité est une
-extrapolation depuis un ajustement à 0,6 % de résidu, et c'est signalé comme tel partout où
-elle apparaît.
+### Le modèle du noyau ne décrit pas le contrat déployé
 
-Les deux termes du modèle sont actionnables dans la même direction. Réduire les niveaux de prix
-est l'axe le moins cher — la grille est publique et peut être resserrée autour d'un prix de
+`MAX_ORDERS = 32` avait été choisi depuis le modèle du noyau : il fallait donc mesurer à la
+borne — une enchère impossible à apparier piège son collatéral et gèle le marché
+définitivement (§10). La mesure est la dernière ligne ci-dessus, et elle est **24,6 % au-dessus
+de ce que prédit le modèle du noyau** (53 484 488). Dimensionné sur la variante « appariement
+seul » de l'ajustement, l'écart aurait été de 46 %.
+
+L'écart se résout proprement. `SableCross.clear()` effectue par ordre un travail que `GasSpike`
+ne fait pas : trois écritures de ciphertext par ordre — `fill` sous la clé du trader, `baseOut`
+et `quoteOut` sous la clé réseau — plus leur stockage. En retirant cela des deux points
+mesurés :
+
+```
+n =  6 :  mesuré − modèle du noyau  →  414 109 gas/ordre
+n = 32 :  mesuré − modèle du noyau  →  411 461 gas/ordre
+```
+
+Les deux concordent à 0,6 %. Le surcoût est une constante par ordre, et c'est là le résultat
+utile : la *structure* du modèle a tenu sur une extrapolation de 5× en `n`, seul son
+coefficient par ordre était faux pour le contrat déployé. Ajustement sur les deux mesures du
+contrat à `K = 12` :
+
+```
+clear(ordres) = 778 955 + 2 058 509·ordres          à 12 niveaux de prix
+```
+
+L'ordonnée à l'origine est corroborée indépendamment : les termes du modèle du noyau
+indépendants du nombre d'ordres donnent 759 400, soit 2,6 % d'écart.
+
+### Capacité
+
+| Budget | Ordres à 12 niveaux |
+|---|---|
+| `MAX_ORDERS = 32`, tel que déployé | 55,5 % d'un bloc |
+| 80 % de la limite de bloc | ~46 |
+| 100 % de la limite de bloc | ~58 |
+
+`MAX_ORDERS = 32` embarque donc une marge de 1,8× face à la limite de bloc, ce qui répond à la
+question qui motivait le test. Une version antérieure de ce document citait ~48 ordres depuis
+le modèle ; la mesure donne ~46 au même budget de 80 %, si bien que ce chiffre était à peu près
+juste pour de mauvaises raisons — il a été remplacé par la mesure.
+
+Les deux termes restent actionnables dans la même direction. Réduire les niveaux de prix est
+l'axe le moins cher — la grille est publique et peut être resserrée autour d'un prix de
 référence sans rien divulguer — et le terme linéaire en ordres est ce qui fait du batch, plutôt
 que de l'appariement continu, la bonne structure pour cette plateforme.
+
+L'enseignement général est celui vers lequel tout ce projet revient. Un modèle de coût ajusté
+à `n ≤ 8` avec un résidu inférieur au pourcent a tout de même mal prédit le contrat livré d'un
+quart, parce qu'il était ajusté sur un autre contrat. **Une extrapolation valide une forme, pas
+un nombre.** La borne à laquelle une défaillance devient irrécupérable est la borne qu'il faut
+mesurer.
 
 ## 10. Confinement des défaillances
 
@@ -516,16 +561,21 @@ conçue.
 apparié des deux côtés ; collatéral entré égal versement sorti dans les deux jetons ; aucun
 ordre suréxécuté ; un desk tentant de déchiffrer l'exécution d'un autre reçoit du bruit.
 
-Deux scénarios complets, de bout en bout :
+Trois scénarios complets, de bout en bout :
 
-| | Carnet équilibré | Carnet déséquilibré |
-|---|---|---|
-| Prix d'équilibre | 101 | 101 |
-| Volume apparié | 65 | 85 |
-| Exécutions individuelles | les six exactes | les six exactes, rationnement appliqué |
-| Conservation | les deux côtés exactement | les deux jetons exactement |
-| Deltas de règlement | exacts pour les trois desks | exacts pour les trois desks |
-| Confidentialité | chaque clé ne lit que ses lignes | chaque clé ne lit que ses lignes |
+| | Carnet équilibré | Carnet déséquilibré | À `MAX_ORDERS` |
+|---|---|---|---|
+| Ordres × niveaux | 6 × 12 | 6 × 12 | **32 × 12** |
+| Prix d'équilibre | 101 | 101 | 99 |
+| Volume apparié | 65 | 85 | 322 |
+| Exécutions individuelles | les six exactes | les six exactes, rationnement appliqué | échantillonnées 1 sur 8, exactes |
+| Conservation | les deux côtés exactement | les deux jetons exactement | les deux côtés, sur les 32 |
+| Deltas de règlement | exacts pour les trois desks | exacts pour les trois desks | — |
+| Confidentialité | chaque clé ne lit que ses lignes | chaque clé ne lit que ses lignes | — |
+
+La troisième colonne est celle qui comptait le plus, et pas pour ses exécutions. Apparier au
+`MAX_ORDERS` du contrat est le cas dont la défaillance est irrécupérable (§10) : c'est donc le
+cas qu'on ne peut pas laisser à un modèle — le §9 dit ce que cette mesure a renvoyé.
 
 Une note méthodologique mérite d'être consignée, car le cas s'est répété. Deux défauts du
 frontend — la lecture de l'enchère vide post-appariement, et l'époque de récompense dérivée

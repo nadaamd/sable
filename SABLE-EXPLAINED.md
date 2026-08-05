@@ -377,35 +377,78 @@ is a direct response: clearing stays fixed-cost, and each desk pays for its own 
 
 ## 9. Cost model and capacity
 
-Least-squares fit over the measured clearing curve:
+Least-squares fit over the instrumented kernel (`GasSpike`), from the day-1 spike:
 
 ```
-gas(orders, levels) = 132,064 + 164,081·orders + 103,275·orders·levels + 52,278·levels
+kernel(orders, levels) = 132,064 + 408,359·orders + 103,275·orders·levels + 52,278·levels
 ```
 
-Residual against real measurements: 0.6%. The bilinear term is the kernel proper — one pass
-over each order at each price level — and its coefficient is the boundary-crossing rule of §8
-made visible in a regression.
+Residual against the kernel's own measurements: 0.3%. The bilinear term is the clearing pass
+proper — one traversal of each order at each price level — and its coefficient is the
+boundary-crossing rule of §8 made visible in a regression.
 
-Measured, on testnet:
+Measured on testnet, for the deployed contract:
 
 | Action | Gas | Share of one 120M block |
 |---|---|---|
 | `submitOrder` | ~2.8M | 2% |
 | Six encrypted IOIs | 3.1M | 3% |
-| `clear`, 6 orders × 12 levels | 13.13M | 11% |
+| `clear`, 6 orders × 12 levels | 13,130,009 | 11% |
+| **`clear`, 32 orders × 12 levels (`MAX_ORDERS`)** | **66,651,243** | **55.5%** |
 | `claim` | 1.4M – 4.0M | 1–3% |
 | `rescue` | ~0.5M per order | <1% |
 
-Against the 120M block gas limit, **the model** places the ceiling near 48 orders at 12
-price levels. The model, not a measurement: the largest configuration we have cleared and
-measured on chain is the 6×12 batch above. Capacity beyond that is an extrapolation from a
-fit with a 0.6% residual, and is labelled as such wherever it appears.
+### The kernel model does not describe the deployed contract
 
-Both terms of the model are actionable in the same direction. Fewer price levels is the
-cheaper axis — the grid is public and can be tightened around a reference price without
-disclosing anything — and the linear order term is what makes batching, rather than
-continuous matching, the right structure for this platform.
+`MAX_ORDERS = 32` was chosen from the kernel model, so it had to be measured at the bound —
+a batch that cannot be cleared traps its escrow and freezes the market permanently (§10). The
+measurement is the last row above, and it is **24.6% above what the kernel model predicts**
+(53,484,488). Sized on the clearing-only variant of the fit, the gap would have been 46%.
+
+The discrepancy resolves cleanly. `SableCross.clear()` does per-order work that `GasSpike`
+does not: three ciphertext writes per order — `fill` under the trader's key, `baseOut` and
+`quoteOut` under the network key — plus their storage. Backing that out of both measured
+points:
+
+```
+n =  6:  measured − kernel model  →  414,109 gas/order
+n = 32:  measured − kernel model  →  411,461 gas/order
+```
+
+Those agree to 0.6%. The overhead is a per-order constant, which is the useful result: the
+model's *structure* held across a 5× extrapolation in `n`, and only its per-order coefficient
+was wrong for the deployed contract. Fitting on the two contract measurements at `K = 12`:
+
+```
+clear(orders) = 778,955 + 2,058,509·orders          at 12 price levels
+```
+
+The intercept is independently corroborated — the kernel model's order-independent terms give
+759,400, within 2.6%.
+
+### Capacity
+
+| Budget | Orders at 12 levels |
+|---|---|
+| `MAX_ORDERS = 32`, as deployed | 55.5% of a block |
+| 80% of the block limit | ~46 |
+| 100% of the block limit | ~58 |
+
+`MAX_ORDERS = 32` therefore ships with 1.8× headroom against the block limit, which is the
+answer to the question that motivated the test. An earlier draft of this document quoted ~48
+orders from the model; the measured figure is ~46 at the same 80% budget, so that number was
+approximately right for the wrong reason, and it has been replaced by the measurement.
+
+Both terms remain actionable in the same direction. Fewer price levels is the cheaper axis —
+the grid is public and can be tightened around a reference price without disclosing anything
+— and the linear order term is what makes batching, rather than continuous matching, the
+right structure for this platform.
+
+The general lesson is the one the whole project keeps returning to. A cost model fitted at
+`n ≤ 8` with a sub-percent residual still mispredicted the shipping contract by a quarter,
+because it was fitted on a different contract. **Extrapolation validates a shape, not a
+number.** The bound at which a failure becomes unrecoverable is the bound that has to be
+measured.
 
 ## 10. Failure containment
 
@@ -490,16 +533,21 @@ on the balanced one it was designed against.
 escrow equals payout in both tokens; no order is overfilled; a desk attempting to decrypt
 another's fill receives noise.
 
-Two complete scenarios, end to end:
+Three complete scenarios, end to end:
 
-| | Balanced book | Lopsided book |
-|---|---|---|
-| Clearing price | 101 | 101 |
-| Matched volume | 65 | 85 |
-| Individual fills | all six exact | all six exact, rationing applied |
-| Conservation | both sides exact | both tokens exact |
-| Settlement deltas | exact for all three desks | exact for all three desks |
-| Confidentiality | each key reads only its own rows | each key reads only its own rows |
+| | Balanced book | Lopsided book | At `MAX_ORDERS` |
+|---|---|---|---|
+| Orders × levels | 6 × 12 | 6 × 12 | **32 × 12** |
+| Clearing price | 101 | 101 | 99 |
+| Matched volume | 65 | 85 | 322 |
+| Individual fills | all six exact | all six exact, rationing applied | sampled every 8th, exact |
+| Conservation | both sides exact | both tokens exact | both sides exact, all 32 |
+| Settlement deltas | exact for all three desks | exact for all three desks | — |
+| Confidentiality | each key reads only its own rows | each key reads only its own rows | — |
+
+The third column is the one that mattered most, and not for its fills. Clearing at the
+contract's own `MAX_ORDERS` is the case whose failure is unrecoverable (§10), so it is the
+case that cannot be left to a model — §9 is what that measurement returned.
 
 One methodological note worth recording, since it recurred. Two frontend defects — reading
 the empty post-cross batch, and deriving the reward epoch as `currentEpoch − 1` — were found

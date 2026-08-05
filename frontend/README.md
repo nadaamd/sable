@@ -12,12 +12,12 @@ into numbers while every other row stays █.
 The page follows the market's own order rather than presenting a flat stack of equal-weight
 panels, which said nothing about which control acted on which data.
 
-**Header.** A sticky identity bar — mark, wordmark, live block, both contracts, and links out
-to the code and the write-up — over the headline figures: clearing price, matched volume, batch
-phase with its countdown, and order count. Those first two are the only values this market ever
-makes public, so they are the page's headline; they used to sit in a side panel below the fold.
-Each tile states whether its value is public or sealed, because that distinction is the entire
-claim.
+**Header.** A sticky identity bar (mark, wordmark, live block, both contracts, and links out to
+the code and the write-up) over the batch readout: the clearing price and matched volume as the
+two result figures, with batch phase and order count beside them at the scale of context. Those
+first two are the only values this market ever makes public, so they are the page's headline;
+they used to sit in a side panel below the fold. The disclosure is stated once beneath the
+readout rather than captioned onto each figure.
 
 The bar must stay a **direct child** of `<main>`: `position: sticky` is bounded by the parent's
 box, so wrapping it in a spacing div pins it to that div and it scrolls away.
@@ -132,16 +132,18 @@ and removed:
 | Hero metric layout | Four equal metric tiles, each a big number over tracked caps, with "public" repeated under two of them. Now two result figures, batch state and order count at the scale of context, and the disclosure stated once for the whole readout. |
 | Em-dash overuse | 32 across the components. The ones left are the "no value" glyph, not punctuation. |
 | Aphoristic-cadence copy | Manufactured contrasts: *"The market publishes a price. No participant reveals their hand."*, *"Nothing here is hidden by this interface; it is unreadable on chain."* Rewritten as plain statements. |
-| Line length, undersized text | Panel prose ran the full 1400px, roughly 180 characters, at 11–12px. `.prose` caps the measure at 78ch and sets 13px. |
+| Line length, undersized text | Panel prose ran the full 1400px, roughly 180 characters, at 11–12px. `.prose` caps the measure and sets 14px; see Typography. |
 
 Uppercase labels were kept on **panel headers**, where they are conventional chrome in a trading
 interface, but tracking dropped to 0.04em and size rose to 12px. Section headings became
 sentence-case text rather than tiny tracked caps.
 
-Three flagged patterns were judged false positives here and kept deliberately: a single
-monospace family (correct for a terminal), the warm palette (the rule targets cream
-*backgrounds*, not warm text on dark), and the four-rectangle SVG mark (a logo, not
-shape-assembled hero art).
+Two flagged patterns were judged false positives here and kept deliberately: the warm palette
+(the rule targets cream *backgrounds*, not warm text on dark) and the four-rectangle SVG mark (a
+logo, not shape-assembled hero art).
+
+A third, **single font for everything**, was a fair hit and is now fixed by the type split
+above.
 
 ## Notes for whoever restyles this
 

@@ -7,6 +7,10 @@ orders — built on [COTI](https://coti.io)'s garbled-circuit EVM.
 
 Built for the [COTI Vibe Code Challenge — Web 4 Agent Edition](https://stay.coti.io/vibe-coding/).
 
+> **New here, or not a developer?** Read **[SABLE-EXPLAINED.md](SABLE-EXPLAINED.md)** instead —
+> the whole project from first principles, no blockchain knowledge assumed.
+> *En français : **[SABLE-EXPLAINED.fr.md](SABLE-EXPLAINED.fr.md)**.*
+
 ---
 
 ## The problem

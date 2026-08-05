@@ -35,9 +35,31 @@ decrypt; nobody else can. An IOI carries a side and a size and deliberately no p
 **Market rules.** The public price grid with the clearing tick marked, beside the parameters and
 the disclosure summary.
 
-Wide tables scroll inside their own panel; the page never scrolls sideways. Body copy is 12px at
-8.2:1 — the original `--dim` measured 4.08:1, below WCAG AA, and it carried nearly every
-explanatory line on the page.
+Wide tables scroll inside their own panel; the page never scrolls sideways.
+
+## Palette
+
+Five warm earth colours, each with one job. Contrast is against `--panel`:
+
+| Hex | Name | Role | Ratio |
+|---|---|---|---|
+| `#443742` | Mauve Shadow | `--line`, structure | 1.47:1 |
+| `#846C5B` | Olive Wood | `--seal`, sealed fields | 3.35:1 |
+| `#CEA07E` | Light Bronze | `--dim`, secondary text | 7.02:1 |
+| `#EDD9A3` | Soft Peach | `--accent`, highlights | 11.80:1 |
+| `#E2E8C0` | Cream | `--ink`, data | 12.96:1 |
+
+Two gaps in the set are closed in `globals.css` rather than fudged. It gives **no background** —
+Mauve Shadow is its darkest colour but far too light for a page, so `--bg` and `--panel` are
+derived plums beneath it and Mauve Shadow does what its luminance suits: borders. And it gives
+**no signal colours**, so `--buy` (`#A9C177` sage) and `--sell` (`#D2765A` terracotta) are
+additions in the same family; the BUY/SELL labels carry the meaning independently, so colour
+reinforces rather than encodes.
+
+Cream and Soft Peach sit 1.1x apart in luminance and cannot both carry text hierarchy — they are
+separated by hue instead. Light Bronze at 1.85x below Cream is what splits primary from
+secondary; keep it at 7:1 or above. The palette also governs `app/icon.svg`,
+`app/opengraph-image.tsx` and the `themeColor` in `app/layout.tsx`.
 
 ## Running it
 
@@ -78,19 +100,23 @@ visibility by keys held:
   ok   Cygnus    reads 3/6 (owns 3)
 ```
 
-## Notes for whoever styles this next
+## Notes for whoever restyles this
 
-Design is deliberately thin — function first. Everything visual is a handful of CSS
-variables at the top of `app/globals.css` (`--bg`, `--panel`, `--line`, `--ink`, `--dim`,
-`--seal`, `--buy`, `--sell`, `--accent`) plus the `.sealed` and `.panel` classes. Tailwind 4
-is available and used for layout only.
+Everything visual is the CSS variables at the top of `app/globals.css` plus the `.sealed`,
+`.panel` and `.panel-label` classes. Tailwind 4 is used for layout only.
 
-Two things worth preserving through a redesign:
+Four things worth preserving through a redesign, each of them a defect that was fixed rather
+than a preference:
 
-1. **Sealed values must read as sealed** — not as missing, and not as a loading state.
-   `--seal` sits close to the panel background but stays legible as a block.
+1. **Sealed values must read as sealed** — not as missing, and not as a loading state. `--seal`
+   was once 1.45:1 against the panel, which made a sealed book look empty instead of opaque.
 2. **The default view is fully sealed.** Unlocking is an explicit action, because the first
    impression should be the unreadable book.
+3. **The reveal must be visible.** Rows that just became readable flash; without that, the one
+   event the whole product exists to demonstrate happens invisibly between two frames.
+4. **Nothing may make the page scroll sideways.** Wide content goes in a `.scroll-x` box. The
+   blotter once made the `<body>` scroll, which reads as broken on a phone — where this link
+   gets opened, because it is posted on X.
 
 ## Known gaps
 

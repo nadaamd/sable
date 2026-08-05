@@ -16,14 +16,14 @@ export const alt = "Sable — a sealed-bid auction whose matching engine runs on
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-const BG = "#08090b"
-const PANEL = "#0e1013"
-const LINE = "#1c2027"
-const SEAL = "#3c434e"
-const INK = "#e6e8ea"
-const DIM = "#8a929c"
-const ACCENT = "#e0b055"
-const BUY = "#4ac25c"
+const BG = "#0b080b"
+const PANEL = "#241d24"
+const LINE = "#443742"
+const SEAL = "#846c5b"
+const INK = "#e2e8c0"
+const DIM = "#cea07e"
+const ACCENT = "#edd9a3"
+const BUY = "#a9c177"
 
 /** A sealed field: present, addressable, unreadable. */
 function Sealed({ w }: { w: number }) {
@@ -39,7 +39,7 @@ function Row({ desk, revealed }: { desk: string; revealed?: [string, string, str
         gap: 20,
         padding: "9px 20px",
         borderTop: `1px solid ${LINE}`,
-        background: revealed ? "#15181d" : "transparent",
+        background: revealed ? "#302732" : "transparent",
       }}
     >
       <div style={{ display: "flex", width: 96, color: revealed ? ACCENT : DIM, fontSize: 19 }}>{desk}</div>

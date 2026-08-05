@@ -1,23 +1,41 @@
 @import "tailwindcss";
 
+/*
+ * Warm earth palette. Five given colours, and what each one does.
+ *
+ *   #443742  Mauve Shadow  -> --line     structure          1.47:1  (non-text)
+ *   #846C5B  Olive Wood    -> --seal     sealed fields      3.35:1  (non-text)
+ *   #CEA07E  Light Bronze  -> --dim      secondary text     7.02:1
+ *   #EDD9A3  Soft Peach    -> --accent   highlights        11.80:1
+ *   #E2E8C0  Cream         -> --ink      data              12.96:1
+ *
+ * Two things the palette does not give, resolved here rather than fudged:
+ *
+ * 1. No background. Mauve Shadow is its darkest colour but far too light to be a page — as a
+ *    panel it left Olive Wood at 2.29:1 and killed the sealed/readable contrast. So --bg and
+ *    --panel are derived plums below it, and Mauve Shadow does what its luminance suits:
+ *    borders.
+ *
+ * 2. No signal colours. A blotter needs buy and sell distinguishable, so --buy and --sell are
+ *    additions in the same warm family. The BUY/SELL labels carry the meaning independently,
+ *    so colour reinforces rather than encodes.
+ *
+ * Cream and Soft Peach sit 1.1x apart in luminance and cannot both carry text hierarchy; they
+ * are separated by hue (pale sage for data, warm gold for accent). Light Bronze at 1.85x below
+ * Cream is what actually splits primary from secondary — keep it at 7:1 or above.
+ */
 :root {
-  --bg: #08090b;
-  --panel: #0e1013;
-  --panel-hi: #12151a;
-  --line: #1c2027;
-  --line-hi: #2a303a;
-  --ink: #e6e8ea;
-  /* 8.21:1 on --panel, for the colour carrying nearly all the explanatory copy at 11-12px.
-     Started at #6d757e (4.08:1, below WCAG AA), went to #8a929c (6.05:1) which still read as
-     dull at this size. Stopping here rather than going brighter keeps a 1.9x gap to --ink, so
-     prose and labels stay visibly subordinate to data. */
-  --dim: #a3abb5;
-  /* A sealed block must read as PRESENT but non-informational. #2b313a was 1.45:1 — close to
-     invisible, so a sealed book looked empty rather than opaque. */
-  --seal: #3c434e;
-  --buy: #4ac25c;
-  --sell: #ff6259;
-  --accent: #e0b055;
+  --bg: #0b080b;
+  --panel: #241d24;
+  --panel-hi: #302732;
+  --line: #443742;
+  --line-hi: #5c4b59;
+  --ink: #e2e8c0;
+  --dim: #cea07e;
+  --seal: #846c5b;
+  --buy: #a9c177;
+  --sell: #d2765a;
+  --accent: #edd9a3;
   /* Minimum height of the sticky identity bar, so it does not shrink to its content and let
      the page jitter as the block number changes width. */
   --header-h: 3.5rem;
@@ -109,7 +127,7 @@ tbody tr:last-child td {
 }
 
 input {
-  background: #060709;
+  background: #17121a;
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 7px 8px;

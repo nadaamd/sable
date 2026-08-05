@@ -7,9 +7,11 @@
   --line: #1c2027;
   --line-hi: #2a303a;
   --ink: #e6e8ea;
-  /* 6.05:1 on --panel. The previous #6d757e measured 4.08:1, below WCAG AA, and this is the
-     colour carrying nearly all of the explanatory copy at 11-12px. */
-  --dim: #8a929c;
+  /* 8.21:1 on --panel, for the colour carrying nearly all the explanatory copy at 11-12px.
+     Started at #6d757e (4.08:1, below WCAG AA), went to #8a929c (6.05:1) which still read as
+     dull at this size. Stopping here rather than going brighter keeps a 1.9x gap to --ink, so
+     prose and labels stay visibly subordinate to data. */
+  --dim: #a3abb5;
   /* A sealed block must read as PRESENT but non-informational. #2b313a was 1.45:1 — close to
      invisible, so a sealed book looked empty rather than opaque. */
   --seal: #3c434e;

@@ -140,11 +140,12 @@ up as theme tokens, so its `font-sans` / `font-mono` utilities resolve to the sa
 Use `.mono` and `.sans` to cross between them. `td` is monospaced by rule and `th` is not, since
 a header is a label and a cell is a value.
 
-`.prose` is a centred block of justified, hyphenated text capped at 66ch. `hyphens: auto` is not
-optional: justification without break points can only stretch word spaces, which opens vertical
-rivers of white at this measure, and that is what rule 60 of the slop catalogue is about. Below
-640px the measure is too narrow for justification to have anywhere to go, so it reverts to flush
-left.
+`.prose` is justified and hyphenated, capped at 66ch, and flush with its container's left edge —
+not centred, so a panel footer still starts where its table's first column does. `hyphens: auto`
+is not optional: justification without break points can only stretch word spaces, which opens
+vertical rivers of white at this measure, and that is what rule 60 of the slop catalogue is about.
+Below 640px the measure is too narrow for justification to have anywhere to go, so it reverts to
+flush left.
 
 ## Slop audit
 

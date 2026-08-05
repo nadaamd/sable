@@ -113,11 +113,14 @@ input {
 }
 
 /*
- * Prose: a centred block of justified text, hyphenated.
+ * Prose: justified and hyphenated, flush with its container's left edge.
  *
- * The measure exists because panel footers once ran the full 1400px, about 180 characters. But a
- * 66ch block pinned to the left of a wide panel leaves a large dead field to its right, so the
- * block is centred while the text inside it is justified.
+ * The measure exists because panel footers once ran the full 1400px, about 180 characters.
+ *
+ * The block is NOT centred, deliberately. Centring it detached the text from the left edge every
+ * other element in the panel aligns to — a footer no longer started where its table's first
+ * column did. Justification already squares off the right edge, which is what made the ragged
+ * version look left-leaning in the first place.
  *
  * `hyphens: auto` is not optional here. Justification without it is a named slop tell, and the
  * reason is mechanical: with no break points the browser can only stretch word spaces, and at
@@ -129,7 +132,6 @@ input {
  */
 .prose {
   max-width: 66ch;
-  margin-inline: auto;
   font-size: 14px;
   line-height: 1.6;
   color: var(--dim);

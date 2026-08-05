@@ -113,27 +113,26 @@ input {
 }
 
 /*
- * Prose: justified and hyphenated, flush with its container's left edge.
+ * Prose: justified, hyphenated, and spanning its container.
  *
- * The measure exists because panel footers once ran the full 1400px, about 180 characters.
+ * There is no measure cap. nada asked for the full width and no early wrapping, twice, so this
+ * is a decided trade-off rather than an oversight: at a 1400px page the line runs about 185
+ * characters, where the readability rule asks for under 80. What that costs is the return sweep —
+ * the eye has to find the start of the next line and can land on the wrong one.
  *
- * The block is NOT centred, deliberately. Centring it detached the text from the left edge every
- * other element in the panel aligns to — a footer no longer started where its table's first
- * column did. Justification already squares off the right edge, which is what made the ragged
- * version look left-leaning in the first place.
+ * `line-height: 1.75` is the mitigation, not decoration. Leading is what makes a long line
+ * recoverable: the wider the measure, the more vertical separation the return sweep needs to
+ * stay reliable.
  *
- * `hyphens: auto` is not optional here. Justification without it is a named slop tell, and the
- * reason is mechanical: with no break points the browser can only stretch word spaces, and at
- * this measure that opens vertical rivers of white down the paragraph. Hyphenation gives it
- * somewhere to break instead. It needs the `lang` attribute, which is set on <html>.
+ * `hyphens: auto` is not optional either. Justification without break points can only stretch
+ * word spaces, which opens vertical rivers of white down the paragraph. Hyphenation gives it
+ * somewhere to break instead, and it needs the `lang` attribute, set on <html>.
  *
- * Below 640px the measure is too narrow for justification to have anywhere to go, so it reverts
- * to flush left rather than producing the rivers this is meant to avoid.
+ * Below 640px justification has nowhere to go, so it reverts to flush left.
  */
 .prose {
-  max-width: 66ch;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.75;
   color: var(--dim);
   text-align: justify;
   hyphens: auto;

@@ -140,12 +140,13 @@ up as theme tokens, so its `font-sans` / `font-mono` utilities resolve to the sa
 Use `.mono` and `.sans` to cross between them. `td` is monospaced by rule and `th` is not, since
 a header is a label and a cell is a value.
 
-`.prose` is justified and hyphenated, capped at 66ch, and flush with its container's left edge —
-not centred, so a panel footer still starts where its table's first column does. `hyphens: auto`
-is not optional: justification without break points can only stretch word spaces, which opens
-vertical rivers of white at this measure, and that is what rule 60 of the slop catalogue is about.
-Below 640px the measure is too narrow for justification to have anywhere to go, so it reverts to
-flush left.
+`.prose` is justified and hyphenated, flush with its container's left edge, and **spans the full
+container width** — there is no measure cap. That is a decided trade-off, not an oversight; see the
+slop audit below. `line-height: 1.75` is the mitigation: leading is what makes a long line
+recoverable, because the wider the measure, the more vertical separation the return sweep needs to
+stay reliable. `hyphens: auto` is not optional either — justification without break points can only
+stretch word spaces, which opens vertical rivers of white down the paragraph, and that is what rule
+60 is about. Below 640px justification has nowhere to go, so it reverts to flush left.
 
 ## Slop audit
 
@@ -159,7 +160,7 @@ and removed:
 | Hero metric layout | Four equal metric tiles, each a big number over tracked caps, with "public" repeated under two of them. Now two result figures, batch state and order count at the scale of context, and the disclosure stated once for the whole readout. |
 | Em-dash overuse | 32 across the components. The ones left are the "no value" glyph, not punctuation. |
 | Aphoristic-cadence copy | Manufactured contrasts: *"The market publishes a price. No participant reveals their hand."*, *"Nothing here is hidden by this interface; it is unreadable on chain."* Rewritten as plain statements. |
-| Line length, undersized text | Panel prose ran the full 1400px, roughly 180 characters, at 11–12px. `.prose` caps the measure and sets 14px; see Typography. |
+| Undersized text | Functional text sat at 11–12px. `.prose` is 14px and nothing is under 12px. (Line length: see the accepted hit below.) |
 
 Uppercase labels were kept on **panel headers**, where they are conventional chrome in a trading
 interface, but tracking dropped to 0.04em and size rose to 12px. Section headings became
@@ -171,6 +172,12 @@ not shape-assembled hero art.
 Rule 30, **cream/beige palette**, was briefly a live hit while the page background was Cream. The
 page is a neutral off-white now, so the warm colours sit on the chrome and the data rather than
 forming the surface, and the rule no longer applies.
+
+Rule 40, **line length too long**, is a live hit and is accepted on the owner's instruction: prose
+spans the container, about 185 characters at a 1400px page, against the under-80 the rule asks for.
+It was fixed once with a 66ch cap and reverted, twice, in favour of the full width. `line-height:
+1.75` is the mitigation for the return sweep, which is the actual cost of a long measure. Recorded
+here as a decision rather than left to look like an oversight.
 
 A third, **single font for everything**, was a fair hit and is now fixed by the type split
 above.

@@ -173,11 +173,12 @@ export async function loadMarket(all: DeskKey[], unlocked: DeskKey[], batchId?: 
   const cleared = Boolean(meta[1])
   const orderCount = Number(meta[4])
 
-  const rows: OrderRow[] = []
-  for (let i = 0; i < orderCount; i++) {
-    const r = await c.sealedOrder(id, i)
-    rows.push(
-      tryDecrypt(
+  // One round trip per order, in parallel. Sequentially this was the dominant cost of a load:
+  // the first paint waited on ~8 serial round trips and showed a dead frame for seconds.
+  const rows: OrderRow[] = await Promise.all(
+    Array.from({ length: orderCount }, async (_, i) => {
+      const r = await c.sealedOrder(id, i)
+      return tryDecrypt(
         {
           index: i,
           trader: r[0] as string,
@@ -187,9 +188,9 @@ export async function loadMarket(all: DeskKey[], unlocked: DeskKey[], batchId?: 
         ticks,
         all,
         unlocked,
-      ),
-    )
-  }
+      )
+    }),
+  )
 
   return {
     ticks,
@@ -217,46 +218,49 @@ export async function loadMarket(all: DeskKey[], unlocked: DeskKey[], batchId?: 
  */
 export async function loadRfq(all: DeskKey[], unlocked: DeskKey[]): Promise<RfqMessage[]> {
   const m = messaging()
-  const ids = new Set<number>()
 
   // Enumerate from every desk we know of — the traffic is public. Only decryption depends on
-  // which keys are unlocked.
-  for (const desk of all) {
-    const [inbox, sent] = await Promise.all([m.inboxCount(desk.address), m.sentCount(desk.address)])
-    const [inIds, outIds] = await Promise.all([
-      Number(inbox) > 0 ? m.getInboxPage(desk.address, 0, inbox) : Promise.resolve([]),
-      Number(sent) > 0 ? m.getSentPage(desk.address, 0, sent) : Promise.resolve([]),
-    ])
-    for (const i of [...(inIds as bigint[]), ...(outIds as bigint[])]) ids.add(Number(i))
-  }
+  // which keys are unlocked. Desks are independent, so they fan out.
+  const perDesk = await Promise.all(
+    all.map(async (desk) => {
+      const [inbox, sent] = await Promise.all([m.inboxCount(desk.address), m.sentCount(desk.address)])
+      const [inIds, outIds] = await Promise.all([
+        Number(inbox) > 0 ? m.getInboxPage(desk.address, 0, inbox) : Promise.resolve([]),
+        Number(sent) > 0 ? m.getSentPage(desk.address, 0, sent) : Promise.resolve([]),
+      ])
+      return [...(inIds as bigint[]), ...(outIds as bigint[])].map(Number)
+    }),
+  )
+  const ids = [...new Set(perDesk.flat())].sort((a, b) => a - b)
 
-  const out: RfqMessage[] = []
-  for (const id of [...ids].sort((a, b) => a - b)) {
-    const meta = await m.getMessageMetadata(id)
-    const from = meta[0] as string
-    const to = meta[1] as string
+  const out = await Promise.all(
+    ids.map(async (id): Promise<RfqMessage> => {
+      const meta = await m.getMessageMetadata(id)
+      const from = meta[0] as string
+      const to = meta[1] as string
 
-    const recipientKey = keyFor(to, unlocked)
-    const senderKey = keyFor(from, unlocked)
+      const recipientKey = keyFor(to, unlocked)
+      const senderKey = keyFor(from, unlocked)
 
-    // Prefer the recipient's copy; fall back to the sender's. Whichever we can read.
-    let chunks: bigint[] = []
-    let text: string | undefined
-    let readAs: string | undefined
-    try {
-      const which = recipientKey ?? senderKey
-      const res = recipientKey ? await m.getRecipientCiphertext(id) : await m.getSenderCiphertext(id)
-      chunks = Array.from(res[0] as ArrayLike<unknown>, (x) => BigInt(x as bigint))
-      if (which) {
-        text = decryptString({ value: chunks }, which.aesKey)
-        readAs = which.name
+      // Prefer the recipient's copy; fall back to the sender's. Whichever we can read.
+      let chunks: bigint[] = []
+      let text: string | undefined
+      let readAs: string | undefined
+      try {
+        const which = recipientKey ?? senderKey
+        const res = recipientKey ? await m.getRecipientCiphertext(id) : await m.getSenderCiphertext(id)
+        chunks = Array.from(res[0] as ArrayLike<unknown>, (x) => BigInt(x as bigint))
+        if (which) {
+          text = decryptString({ value: chunks }, which.aesKey)
+          readAs = which.name
+        }
+      } catch {
+        text = undefined
       }
-    } catch {
-      text = undefined
-    }
 
-    out.push({ id, from, to, timestamp: Number(meta[2]), epoch: Number(meta[3]), chunks, text, readAs })
-  }
+      return { id, from, to, timestamp: Number(meta[2]), epoch: Number(meta[3]), chunks, text, readAs }
+    }),
+  )
   return out
 }
 

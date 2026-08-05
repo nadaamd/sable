@@ -9,15 +9,23 @@ into numbers while every other row stays █.
 
 ## Panels
 
+- **View as desk** — the primary control, at the top, above the book it acts on. Keys are
+  listed but inactive by default, so the terminal opens on the honest view. Unlocking one desk
+  flashes exactly the rows that just became readable, because that transition *is* the product
+  and it used to happen invisibly between two frames.
 - **Order book** — every order in the batch: trader and index public, side/limit/size as
   ciphertexts. A short ciphertext fingerprint sits next to each row, so it is visible that
-  there is real data there and that it is opaque.
+  there is real data there and that it is opaque. Sealed cells vary in width, derived from the
+  ciphertext (which is public) — a uniform grid read as a loading placeholder.
 - **The cross** — the only two numbers that ever become public: clearing price and matched
-  volume. Plus the public price grid with the clearing tick marked, and a commit countdown.
+  volume. Plus the public price grid with the clearing tick marked, and a commit countdown. It
+  leads on mobile and sticks in view on desktop, where a book can run to 32 rows.
 - **RFQ channel** — the encrypted pre-trade messages between desks. Sender and recipient can
   each decrypt; nobody else can. An IOI carries a side and a size and deliberately no price.
-- **View as desk** — load AES keys. Inactive by default, so the terminal opens on the honest
-  view.
+
+Wide tables scroll inside their own panel; the page never scrolls sideways. Body copy is 12px
+at a 6:1 contrast ratio — the previous `--dim` measured 4.08:1, below WCAG AA, and it carried
+nearly every explanatory line on the page.
 
 ## Running it
 

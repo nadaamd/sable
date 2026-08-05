@@ -23,13 +23,21 @@ export default function Page() {
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000))
   const [viewBatch, setViewBatch] = useState<number | undefined>(undefined)
 
-  // Demo desks come from .env.local; anything pasted in the UI is layered on top.
+  /**
+   * Demo desks come from .env.local; anything pasted in the UI is layered on top.
+   *
+   * This reads localStorage, which does not exist during SSR, so it cannot move into a
+   * `useState` initialiser without either crashing on the server or rendering a different
+   * desk list there than on the client — a hydration mismatch. Reading an external store on
+   * mount is what the effect is for; `set-state-in-effect` flags the shape, not a defect.
+   */
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE) : null
     const saved: DeskKey[] = stored ? JSON.parse(stored) : []
     const merged = [...envDesks(), ...saved].filter(
       (k, i, all) => all.findIndex((o) => o.address.toLowerCase() === k.address.toLowerCase()) === i,
     )
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is unavailable during SSR
     setKeys(merged)
   }, [])
 
@@ -53,7 +61,14 @@ export default function Page() {
     }
   }, [keys, unlocked, viewBatch])
 
+  /**
+   * Subscribe to the chain: one read immediately, then every POLL_MS.
+   *
+   * `refresh` is async and every setState in it happens after an await, so no state is set
+   * synchronously in this effect body — the rule matches on the call, not the timing.
+   */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh() only sets state after awaiting
     void refresh()
     const id = setInterval(() => void refresh(), POLL_MS)
     return () => clearInterval(id)
@@ -101,18 +116,18 @@ export default function Page() {
   const batches = market ? Array.from({ length: market.currentBatch + 1 }, (_, i) => i) : []
 
   return (
-    <main className="mx-auto max-w-[1400px] p-4">
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-4 p-3 sm:p-4">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <h1 className="text-xl tracking-wide">
             SABLE <span className="text-[var(--dim)]">/ the confidential cross</span>
           </h1>
-          <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[var(--dim)]">
+          <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-[var(--dim)]">
             A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted
             orders. The market publishes a price. No participant reveals their hand.
           </p>
         </div>
-        <div className="text-right text-[11px] text-[var(--dim)]">
+        <div className="text-[12px] text-[var(--dim)] sm:text-right">
           <div>
             cross{" "}
             <a href={`${EXPLORER}/address/${CROSS_ADDRESS}`} target="_blank" rel="noreferrer">
@@ -125,37 +140,39 @@ export default function Page() {
               {MESSAGING_ADDRESS.slice(0, 10)}…
             </a>
           </div>
-          <div>COTI testnet · block {market?.blockNumber ?? "…"}</div>
+          <div className="flex items-center gap-1.5 sm:justify-end">
+            <span
+              className={market ? "live-dot" : undefined}
+              style={{ color: market ? "var(--buy)" : "var(--seal)" }}
+              aria-hidden
+            >
+              ●
+            </span>
+            COTI testnet · block {market?.blockNumber ?? "…"}
+          </div>
         </div>
       </header>
 
       {error && (
-        <div className="panel mb-4 px-3 py-2 text-[11px]" style={{ borderColor: "var(--sell)" }}>
+        <div className="panel px-3 py-2 text-[12px]" style={{ borderColor: "var(--sell)" }}>
           <span style={{ color: "var(--sell)" }}>chain read failed:</span> {error}
         </div>
       )}
 
-      {/* A wall of █ on first load reads as a broken page unless we say otherwise. */}
-      {market && market.batch.orders.length > 0 && active.length === 0 && (
-        <div
-          className="panel mb-4 px-3 py-2 text-[11px] leading-relaxed"
-          style={{ borderColor: "var(--accent)" }}
-        >
-          <span style={{ color: "var(--accent)" }}>Everything below is sealed on chain.</span>{" "}
-          This is the whole book, fetched with public calls and unreadable — side, limit, size and
-          fill are ciphertexts. Unlock a desk under{" "}
-          <span className="text-[var(--ink)]">View as desk</span> to decrypt that desk&apos;s rows;
-          every other row stays █, including to us.
-        </div>
-      )}
+      {/*
+        The primary control, above the book it acts on. It also carries the "this is sealed, not
+        broken" line, so there is one explanation in one place rather than two boxes competing.
+      */}
+      <DeskKeys keys={keys} active={active} onToggle={toggle} onAdd={addKey} onForget={forgetPasted} />
 
       {market && batches.length > 1 && (
-        <div className="mb-4 flex items-center gap-2 text-[11px]">
-          <span className="text-[var(--dim)]">batch</span>
+        <div className="scroll-x flex items-center gap-2 text-[12px]">
+          <span className="shrink-0 text-[var(--dim)]">batch</span>
           {batches.map((b) => (
             <button
               key={b}
               onClick={() => setViewBatch(b === market.currentBatch ? undefined : b)}
+              className="shrink-0"
               style={{
                 borderColor: b === market.batch.id ? "var(--accent)" : "var(--line)",
                 color: b === market.batch.id ? "var(--accent)" : "var(--dim)",
@@ -169,23 +186,26 @@ export default function Page() {
       )}
 
       {!market ? (
-        <div className="panel px-3 py-10 text-center text-[var(--dim)]">reading chain…</div>
+        <Skeleton />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-          <div className="flex flex-col gap-4">
-            <Blotter batch={market.batch} />
-            <RfqFeed messages={rfq} deskName={deskName} />
+          {/*
+            The cross leads on mobile — two public numbers beat a table you have to scroll — and
+            stays in view on desktop, where the book can run to 32 rows.
+          */}
+          <div className="lg:order-2 lg:sticky lg:top-4 lg:self-start">
+            <CrossPanel batch={market.batch} ticks={market.ticks} nowSec={nowSec} />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <CrossPanel batch={market.batch} ticks={market.ticks} nowSec={nowSec} />
-            <DeskKeys keys={keys} active={active} onToggle={toggle} onAdd={addKey} onForget={forgetPasted} />
+          <div className="flex flex-col gap-4 lg:order-1">
+            <Blotter batch={market.batch} />
+            <RfqFeed messages={rfq} deskName={deskName} />
 
             <div className="panel">
-              <div className="border-b border-[var(--line)] px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--dim)]">
-                Market
+              <div className="border-b border-[var(--line)] px-3 py-2">
+                <span className="panel-label">Market</span>
               </div>
-              <div className="px-3 py-2 text-[11px]">
+              <div className="px-3 py-2 text-[12px]">
                 <Line
                   k="ticks"
                   v={`${market.ticks.length} (${market.ticks[0]}–${market.ticks[market.ticks.length - 1]})`}
@@ -203,7 +223,7 @@ export default function Page() {
                   </>
                 )}
               </div>
-              <div className="border-t border-[var(--line)] px-3 py-2 text-[11px] leading-relaxed text-[var(--dim)]">
+              <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
                 What is public: that an address submitted an order and when, the clearing price,
                 and the matched volume. What is never public: side, limit, size, each desk&apos;s
                 fill, and everything about orders that did not cross.
@@ -212,15 +232,56 @@ export default function Page() {
           </div>
         </div>
       )}
+
+      <footer className="pb-2 text-[12px] leading-relaxed text-[var(--dim)]">
+        Read-only. No wallet, no signature, no permission needed to fetch this entire book — that
+        is the point. Testnet only.
+      </footer>
     </main>
+  )
+}
+
+/**
+ * First paint, before the chain answers.
+ *
+ * A centred "reading chain…" left a dead frame on the most important impression the page makes,
+ * and on camera. The skeleton is sealed rows — the shape the real book will take — so the first
+ * thing a visitor sees is already the point being made.
+ */
+function Skeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="panel lg:order-1">
+        <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+          <span className="panel-label">Order book</span>
+          <span className="text-[12px] text-[var(--dim)]">reading chain…</span>
+        </div>
+        <div className="flex flex-col">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="flex items-center gap-6 border-b border-[var(--line)] px-3 py-2 last:border-0">
+              <span className="text-[var(--dim)]">#{i}</span>
+              <span className="sealed">{"█".repeat(11)}</span>
+              <span className="sealed">{"█".repeat(4)}</span>
+              <span className="sealed ml-auto">{"█".repeat(5 + (i % 3))}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="panel px-3 py-6 lg:order-2">
+        <span className="panel-label">The cross</span>
+        <div className="mt-3 text-4xl text-[var(--seal)]">██ · ██</div>
+      </div>
+    </div>
   )
 }
 
 function Line({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex justify-between py-[3px]">
+    <div className="flex justify-between gap-4 py-[3px]">
       <span className="text-[var(--dim)]">{k}</span>
-      <span>{v}</span>
+      <span className="text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
+        {v}
+      </span>
     </div>
   )
 }

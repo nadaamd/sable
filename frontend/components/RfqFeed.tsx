@@ -21,8 +21,8 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
   return (
     <div className="panel">
       <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
-        <span className="text-[var(--dim)] text-[10px] uppercase tracking-widest">RFQ channel</span>
-        <span className="text-[11px] text-[var(--dim)]">{messages.length} encrypted message(s)</span>
+        <span className="panel-label">RFQ channel</span>
+        <span className="text-[12px] text-[var(--dim)]">{messages.length} encrypted message(s)</span>
       </div>
 
       {messages.length === 0 ? (
@@ -30,6 +30,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
           No messages. Load a desk key, or run the RFQ round.
         </div>
       ) : (
+        <div className="scroll-x">
         <table>
           <thead>
             <tr>
@@ -46,12 +47,12 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
                 <td className="text-[var(--dim)]">#{m.id}</td>
                 <td>{deskName(m.from) || shortAddr(m.from)}</td>
                 <td>{deskName(m.to) || shortAddr(m.to)}</td>
-                <td className="text-[11px] sealed">{ctPreview(m.chunks)}</td>
+                <td className="text-[12px] sealed">{ctPreview(m.chunks)}</td>
                 <td>
                   {m.text ? (
                     <span>
                       <span className="text-[var(--buy)]">{m.text}</span>
-                      <span className="ml-2 text-[10px] text-[var(--dim)]">read as {m.readAs}</span>
+                      <span className="ml-2 text-[11px] text-[var(--dim)]">read as {m.readAs}</span>
                     </span>
                   ) : (
                     <span className="text-[var(--dim)]">no key held</span>
@@ -61,9 +62,10 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[11px] text-[var(--dim)]">
+      <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] text-[var(--dim)]">
         Sender and recipient can each decrypt; nobody else can. An IOI carries a side and a
         size and deliberately no price — enough for a counterparty to size up, nothing about
         valuation. COTI pays each desk for the encrypted cells it stores, so the protocol funds

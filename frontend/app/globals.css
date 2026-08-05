@@ -3,13 +3,23 @@
 :root {
   --bg: #08090b;
   --panel: #0e1013;
+  --panel-hi: #12151a;
   --line: #1c2027;
+  --line-hi: #2a303a;
   --ink: #e6e8ea;
-  --dim: #6d757e;
-  --seal: #2b313a;
-  --buy: #3fb950;
-  --sell: #f85149;
-  --accent: #d9a94a;
+  /* 6.05:1 on --panel. The previous #6d757e measured 4.08:1, below WCAG AA, and this is the
+     colour carrying nearly all of the explanatory copy at 11-12px. */
+  --dim: #8a929c;
+  /* A sealed block must read as PRESENT but non-informational. #2b313a was 1.45:1 — close to
+     invisible, so a sealed book looked empty rather than opaque. */
+  --seal: #3c434e;
+  --buy: #4ac25c;
+  --sell: #ff6259;
+  --accent: #e0b055;
+}
+
+* {
+  min-width: 0;
 }
 
 html,
@@ -19,6 +29,8 @@ body {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+  /* The page itself must never scroll sideways; wide content scrolls inside .scroll-x. */
+  overflow-x: hidden;
 }
 
 /* A sealed value: present on chain, addressable, and unreadable. */
@@ -33,6 +45,34 @@ body {
   border: 1px solid var(--line);
 }
 
+.panel-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+}
+
+/*
+ * Wide content scrolls in its own box.
+ *
+ * The blotter is 8 columns of nowrap text. Without this the BODY scrolled sideways on a phone,
+ * which is the classic broken-mobile signature — and this link gets opened on phones, because
+ * it is posted on X.
+ */
+.scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-x::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scroll-x::-webkit-scrollbar-thumb {
+  background: var(--line-hi);
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -43,15 +83,20 @@ th {
   font-weight: 500;
   text-align: left;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 
 th,
 td {
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
+}
+
+/* Digits must line up in a book, or scanning a column becomes reading it. */
+td {
+  font-variant-numeric: tabular-nums;
 }
 
 tbody tr:last-child td {
@@ -62,9 +107,13 @@ input {
   background: #060709;
   border: 1px solid var(--line);
   color: var(--ink);
-  padding: 5px 8px;
+  padding: 7px 8px;
   outline: none;
   font: inherit;
+}
+
+input::placeholder {
+  color: var(--dim);
 }
 
 input:focus {
@@ -73,11 +122,12 @@ input:focus {
 
 button {
   border: 1px solid var(--line);
-  padding: 5px 10px;
+  padding: 7px 10px;
   color: var(--ink);
   cursor: pointer;
   font: inherit;
   background: transparent;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
 }
 
 button:hover:not(:disabled) {
@@ -90,6 +140,12 @@ button:disabled {
   cursor: default;
 }
 
+/* Keyboard users had no visible focus anywhere: buttons were only styled on :hover. */
+:where(button, a, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;
@@ -97,4 +153,48 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+/*
+ * The decryption moment.
+ *
+ * Unlocking a desk used to swap ciphertext for numbers instantly, so the eye could not tell
+ * WHICH rows had changed — the single most important event in the product was invisible. This
+ * marks the transition without animating anything that carries meaning.
+ */
+@keyframes reveal {
+  0% {
+    background-color: color-mix(in srgb, var(--accent) 26%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.revealed {
+  animation: reveal 900ms ease-out;
+}
+
+@keyframes tick {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: tick 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revealed,
+  .live-dot {
+    animation: none;
+  }
+  button {
+    transition: none;
+  }
 }

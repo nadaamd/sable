@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import type { BatchView, OrderRow } from "@/lib/chain"
 import { EXPLORER } from "@/lib/deployment"
 
@@ -9,7 +10,15 @@ function fingerprint(ct: bigint): string {
   return `${hex.slice(0, 4)}…${hex.slice(-4)}`
 }
 
-function Sealed({ ct, width = 6 }: { ct: bigint; width?: number }) {
+/**
+ * A sealed field, drawn as blocks whose count varies with the ciphertext.
+ *
+ * Fixed-width blocks made the book a perfect grid, which read as a loading placeholder rather
+ * than as data. The width is derived from the CIPHERTEXT, which is public — it reveals nothing
+ * about the plaintext, and it makes the wall look like what it is.
+ */
+function Sealed({ ct, base = 5 }: { ct: bigint; base?: number }) {
+  const width = base + Number(ct % 3n)
   return (
     <span className="sealed" title={`ciphertext 0x${ct.toString(16)}`}>
       {"█".repeat(width)}
@@ -19,18 +28,22 @@ function Sealed({ ct, width = 6 }: { ct: bigint; width?: number }) {
 
 function Addr({ address }: { address: string }) {
   return (
-    <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noreferrer" className="text-[var(--dim)]">
+    <a
+      href={`${EXPLORER}/address/${address}`}
+      target="_blank"
+      rel="noreferrer"
+      className="text-[var(--dim)]"
+    >
       {address.slice(0, 6)}…{address.slice(-4)}
     </a>
   )
 }
 
-function Row({ order, cleared }: { order: OrderRow; cleared: boolean }) {
+function Row({ order, cleared, flash }: { order: OrderRow; cleared: boolean; flash: boolean }) {
   const p = order.plain
-  const mine = Boolean(p)
 
   return (
-    <tr className={mine ? "bg-[#12151a]" : undefined}>
+    <tr className={`${p ? "bg-[var(--panel-hi)]" : ""} ${flash ? "revealed" : ""}`}>
       <td className="text-[var(--dim)]">#{order.index}</td>
       <td>
         <Addr address={order.trader} />
@@ -41,11 +54,11 @@ function Row({ order, cleared }: { order: OrderRow; cleared: boolean }) {
         {p ? (
           <span style={{ color: p.isBuy ? "var(--buy)" : "var(--sell)" }}>{p.isBuy ? "BUY" : "SELL"}</span>
         ) : (
-          <Sealed ct={order.ct.isBuy} width={4} />
+          <Sealed ct={order.ct.isBuy} base={4} />
         )}
       </td>
-      <td className="text-right">{p ? p.limit : <Sealed ct={order.ct.limit} width={5} />}</td>
-      <td className="text-right">{p ? p.size : <Sealed ct={order.ct.size} width={5} />}</td>
+      <td className="text-right">{p ? p.limit : <Sealed ct={order.ct.limit} />}</td>
+      <td className="text-right">{p ? p.size : <Sealed ct={order.ct.size} />}</td>
 
       <td className="text-right">
         {!cleared ? (
@@ -53,61 +66,96 @@ function Row({ order, cleared }: { order: OrderRow; cleared: boolean }) {
         ) : p ? (
           <span className={p.fill > 0 ? "text-[var(--ink)]" : "text-[var(--dim)]"}>{p.fill}</span>
         ) : (
-          <Sealed ct={order.ct.fill} width={4} />
+          <Sealed ct={order.ct.fill} base={4} />
         )}
       </td>
 
-      <td className="text-[var(--dim)] text-[11px]">{fingerprint(order.ct.limit)}</td>
+      {/* First to go on a narrow screen: it is corroboration, not information. */}
+      <td className="hidden text-[12px] text-[var(--dim)] md:table-cell">{fingerprint(order.ct.limit)}</td>
       <td className="text-[var(--dim)]">{order.claimed ? "settled" : cleared ? "unsettled" : ""}</td>
     </tr>
   )
 }
 
+/**
+ * Marks rows that just became readable.
+ *
+ * Unlocking a desk swapped ciphertext for numbers between two frames, so the single most
+ * important event in the product — a field going from unreadable to readable — was invisible
+ * unless you already knew which row to watch. This flashes exactly the rows that changed.
+ */
+function useJustRevealed(orders: OrderRow[]): Set<number> {
+  const seen = useRef<Set<number>>(new Set())
+  const [flashing, setFlashing] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    const readable = new Set(orders.filter((o) => o.plain).map((o) => o.index))
+    const fresh = [...readable].filter((i) => !seen.current.has(i))
+    seen.current = readable
+    if (fresh.length === 0) return
+
+    setFlashing(new Set(fresh))
+    const id = setTimeout(() => setFlashing(new Set()), 900)
+    return () => clearTimeout(id)
+  }, [orders])
+
+  return flashing
+}
+
 export function Blotter({ batch }: { batch: BatchView }) {
+  const flashing = useJustRevealed(batch.orders)
   const readable = batch.orders.filter((o) => o.plain).length
+  const total = batch.orders.length
 
   return (
     <div className="panel">
-      <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--line)] px-3 py-2">
         <div>
-          <span className="text-[var(--dim)] text-[10px] uppercase tracking-widest">Order book</span>
+          <span className="panel-label">Order book</span>
           <span className="ml-3">batch {batch.id}</span>
         </div>
-        <div className="text-[var(--dim)] text-[11px]">
-          {batch.orders.length} order{batch.orders.length === 1 ? "" : "s"} · {readable} readable by keys you hold
-        </div>
+        {total > 0 && (
+          <div className="text-[12px] text-[var(--dim)]">
+            <span className={readable > 0 ? "text-[var(--accent)]" : undefined}>
+              {readable} of {total}
+            </span>{" "}
+            readable with the keys you hold
+          </div>
+        )}
       </div>
 
-      {batch.orders.length === 0 ? (
+      {total === 0 ? (
         <div className="px-3 py-8 text-center text-[var(--dim)]">
           No orders in this batch yet. Run the desks and they appear here — sealed.
         </div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th />
-              <th>Trader</th>
-              <th>Side</th>
-              <th className="text-right">Limit</th>
-              <th className="text-right">Size</th>
-              <th className="text-right">Fill</th>
-              <th>Ciphertext</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {batch.orders.map((o) => (
-              <Row key={o.index} order={o} cleared={batch.cleared} />
-            ))}
-          </tbody>
-        </table>
+        <div className="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th />
+                <th>Trader</th>
+                <th>Side</th>
+                <th className="text-right">Limit</th>
+                <th className="text-right">Size</th>
+                <th className="text-right">Fill</th>
+                <th className="hidden md:table-cell">Ciphertext</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {batch.orders.map((o) => (
+                <Row key={o.index} order={o} cleared={batch.cleared} flash={flashing.has(o.index)} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[11px] text-[var(--dim)]">
-        Every row is a public `view` call — anyone can read this table. Side, limit and size are
-        ciphertexts under their own desk&apos;s key, so they stay █ unless you hold that key.
-        Nothing here is hidden by this interface; it is unreadable on chain.
+      <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
+        Every row is a public <code>view</code> call — anyone can read this table. Side, limit and
+        size are ciphertexts under their own desk&apos;s key, so they stay █ unless you hold that
+        key. Nothing here is hidden by this interface; it is unreadable on chain.
       </div>
     </div>
   )

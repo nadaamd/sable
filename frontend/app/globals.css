@@ -113,18 +113,36 @@ input {
 }
 
 /*
- * Prose stops at a readable measure. Panel footers once ran the full 1400px, about 180
- * characters.
+ * Prose: a centred block of justified text, hyphenated.
  *
- * 66ch, not the 78ch this carried in monospace: `ch` is the width of "0", and in a
- * proportional face most letters are narrower than that, so the same ch value fits noticeably
- * more real characters. 66ch lands near 75 here.
+ * The measure exists because panel footers once ran the full 1400px, about 180 characters. But a
+ * 66ch block pinned to the left of a wide panel leaves a large dead field to its right, so the
+ * block is centred while the text inside it is justified.
+ *
+ * `hyphens: auto` is not optional here. Justification without it is a named slop tell, and the
+ * reason is mechanical: with no break points the browser can only stretch word spaces, and at
+ * this measure that opens vertical rivers of white down the paragraph. Hyphenation gives it
+ * somewhere to break instead. It needs the `lang` attribute, which is set on <html>.
+ *
+ * Below 640px the measure is too narrow for justification to have anywhere to go, so it reverts
+ * to flush left rather than producing the rivers this is meant to avoid.
  */
 .prose {
   max-width: 66ch;
+  margin-inline: auto;
   font-size: 14px;
   line-height: 1.6;
   color: var(--dim);
+  text-align: justify;
+  hyphens: auto;
+  text-wrap: pretty;
+}
+
+@media (max-width: 639px) {
+  .prose {
+    text-align: left;
+    hyphens: manual;
+  }
 }
 
 /*

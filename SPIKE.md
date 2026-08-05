@@ -6,6 +6,10 @@ after the mux fix): **0.013 COTI** out of a 10 COTI faucet grant.
 
 ## Verdict: single-transaction clearing is viable, with room to spare
 
+> **Read the postscript below before reusing any number on this page.** Every figure here is
+> measured on the instrumented kernel (`GasSpike`). The deployed contract carries ~412k more
+> gas per order, and clearing at `MAX_ORDERS` was later measured directly.
+
 The design question was whether a uniform-price batch auction over *encrypted* orders
 fits in one transaction, or whether clearing has to be sharded across several.
 

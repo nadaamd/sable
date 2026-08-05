@@ -114,10 +114,24 @@ contract SableCross {
     /**
      * Hard cap on orders per batch, so clearing always fits in one transaction.
      *
-     * Measured on COTI testnet: clearing plus allocation costs roughly
-     * 132k + 164k*n + 103k*n*K + 52k*K gas, plus ~580k per order for allocation.
-     * At K = 12 ticks the 120M block limit is reached around n = 48, so 32 leaves a
-     * comfortable margin for gas-price variance and future kernel changes.
+     * MEASURED AT THIS BOUND, not extrapolated — an uncleanable batch traps its escrow and
+     * freezes the market permanently (see `rescue`), so the cap is the one number here that
+     * a model must not be trusted for. `scripts/stress-max-orders.ts` clears a full batch:
+     *
+     *   n = 32, K = 12  ->  66,651,243 gas   (55.5% of the 120M block limit)
+     *
+     * That came in 24.6% above the GasSpike model this cap was originally sized from
+     * (132k + 408k*n + 103k*n*K + 52k*K), because SableCross additionally writes three
+     * ciphertexts per order — fill under the trader's key, baseOut/quoteOut under the
+     * network key — which the instrumented kernel does not. The overhead is a per-order
+     * constant: 414,109 gas/order at n = 6 and 411,461 at n = 32, agreeing to 0.6%. So the
+     * model's shape held and only its per-order coefficient was wrong.
+     *
+     * For this contract at K = 12:  clear(n) = 778,955 + 2,058,509*n
+     *   -> ~46 orders at 80% of a block, ~58 at the limit.
+     *
+     * 32 therefore leaves 1.8x headroom for gas-price variance and future kernel changes.
+     * Raising it requires re-running the stress test, not re-evaluating the formula.
      */
     uint32 public constant MAX_ORDERS = 32;
 

@@ -1,13 +1,22 @@
 /**
  * Does clearing actually fit in a block at the contract's own limit?
  *
- * MAX_ORDERS was picked from a gas model fitted at n <= 8. That model has held to within
- * fractions of a percent, but a model is not a measurement, and the failure it would hide is
- * the worst one this contract has: clearing is O(n·K), and a batch that cannot be cleared
- * locks every escrow in it AND freezes the market permanently, because `currentBatch` only
- * advances inside `clear()`.
+ * MAX_ORDERS was picked from a gas model fitted at n <= 8, on the instrumented kernel. A
+ * model is not a measurement, and the failure it would hide is the worst one this contract
+ * has: clearing is O(n·K), and a batch that cannot be cleared locks every escrow in it AND
+ * freezes the market permanently, because `currentBatch` only advances inside `clear()`.
  *
- * So this fills a batch to MAX_ORDERS and clears it for real.
+ * So this fills a batch to MAX_ORDERS and clears it for real. It was worth doing:
+ *
+ *   n = 32, K = 12  ->  66,651,243 gas, 55.5% of the block limit
+ *
+ * which is 24.6% ABOVE what the kernel model predicted. The model was fitted on GasSpike,
+ * and SableCross writes three ciphertexts per order that GasSpike does not; the overhead is
+ * a per-order constant (414,109 gas/order at n = 6, 411,461 at n = 32). The shape held, the
+ * per-order coefficient did not. MAX_ORDERS = 32 stands, with 1.8x headroom.
+ *
+ * The lesson, since it cost nothing here and would have cost the market: extrapolation
+ * validates a shape, not a number. Re-run this stage before raising MAX_ORDERS.
  *
  * It also exercises the parts only a full batch reaches: the rescue path's chunking is not
  * tested here (see stage `rescue`), but the bounds check is, and the reference engine

@@ -175,7 +175,7 @@ export default function Page() {
             <PriceGrid batch={market.batch} ticks={market.ticks} />
 
             <div className="panel flex flex-col">
-              <div className="border-b border-[var(--line)] px-3 py-2">
+              <div className="panel-head px-3 py-2">
                 <span className="panel-label">Parameters &amp; disclosure</span>
               </div>
               <div className="px-3 py-2 text-[13px]">
@@ -226,9 +226,9 @@ export default function Page() {
 function BookSkeleton() {
   return (
     <div className="panel">
-      <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+      <div className="panel-head flex items-baseline justify-between px-3 py-2">
         <span className="panel-label">Order book</span>
-        <span className="text-[13px] text-[var(--dim)]">reading chain…</span>
+        <span className="text-[13px] opacity-80">reading chain…</span>
       </div>
       <div className="flex flex-col">
         {Array.from({ length: 6 }, (_, i) => (

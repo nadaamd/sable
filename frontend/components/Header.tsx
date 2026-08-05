@@ -41,7 +41,7 @@ function Mark() {
 function Contract({ label, address }: { label: string; address: string }) {
   return (
     <span className="whitespace-nowrap">
-      <span className="text-[var(--dim)]">{label} </span>
+      <span className="opacity-70">{label} </span>
       <a className="mono" href={`${EXPLORER}/address/${address}`} target="_blank" rel="noreferrer">
         {address.slice(0, 8)}…
       </a>
@@ -95,15 +95,15 @@ export function Header({
   return (
     <>
       <div
-        // Solid, not translucent: a blurred glass bar is decoration, and content sliding
-        // under a half-transparent header is harder to read than content that is covered.
-        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[var(--line)] bg-[var(--bg)] py-4"
+        // Chrome, and solid: a blurred glass bar is decoration, and content sliding under a
+        // half-transparent header is harder to read than content that is simply covered.
+        className="panel-head sticky top-0 z-20 -mx-3 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-3 py-4 sm:-mx-4 sm:px-4"
         style={{ minHeight: "var(--header-h)" }}
       >
         <div className="flex items-center gap-3.5">
           <Mark />
           <h1 className="mono text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
-          <span className="ml-1 hidden border-l border-[var(--line)] pl-4 text-[13px] text-[var(--dim)] md:inline">
+          <span className="ml-1 hidden border-l border-[var(--accent-deep)] pl-4 text-[13px] text-[var(--accent)] md:inline">
             the confidential cross
           </span>
         </div>
@@ -111,16 +111,16 @@ export function Header({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
           <span className="hidden items-center gap-1.5 md:flex">
             <Contract label="cross" address={CROSS_ADDRESS} />
-            <span className="text-[var(--line-hi)]">·</span>
+            <span className="opacity-50">·</span>
             <Contract label="rfq" address={MESSAGING_ADDRESS} />
           </span>
 
-          <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--dim)]">
-            <span style={{ color: blockNumber ? "var(--buy)" : "var(--seal)" }} aria-hidden>
+          <span className="flex items-center gap-1.5 whitespace-nowrap opacity-70">
+            <span style={{ color: blockNumber ? "var(--accent)" : "var(--seal)" }} aria-hidden>
               ●
             </span>
             COTI testnet
-            <span className="text-[var(--line-hi)]">·</span>
+            <span className="opacity-50">·</span>
             <span className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{blockNumber ?? "…"}</span>
           </span>
 

@@ -20,9 +20,9 @@ function ctPreview(chunks: bigint[]): string {
 export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskName: (a: string) => string }) {
   return (
     <div className="panel">
-      <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+      <div className="panel-head flex items-baseline justify-between px-3 py-2">
         <span className="panel-label">RFQ channel</span>
-        <span className="text-[13px] text-[var(--dim)]">{messages.length} encrypted messages</span>
+        <span className="text-[13px] opacity-80">{messages.length} encrypted messages</span>
       </div>
 
       {messages.length === 0 ? (

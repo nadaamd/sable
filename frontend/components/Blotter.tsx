@@ -109,14 +109,14 @@ export function Blotter({ batch }: { batch: BatchView }) {
 
   return (
     <div className="panel">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--line)] px-3 py-2">
+      <div className="panel-head flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-3 py-2">
         <div>
           <span className="panel-label">Order book</span>
           <span className="ml-3">batch {batch.id}</span>
         </div>
         {total > 0 && (
-          <div className="text-[13px] text-[var(--dim)]">
-            <span className={readable > 0 ? "text-[var(--accent)]" : undefined}>
+          <div className="text-[13px] opacity-80">
+            <span className={readable > 0 ? "text-[var(--accent)] opacity-100" : undefined}>
               {readable} of {total}
             </span>{" "}
             readable with the keys you hold

@@ -73,7 +73,7 @@ export function DeskKeys({
                   style={{
                     borderColor: on ? "var(--accent)" : "var(--line-hi)",
                     color: on ? "var(--accent)" : "var(--ink)",
-                    background: on ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
+                    background: on ? "color-mix(in srgb, var(--accent-fill) 45%, transparent)" : "transparent",
                   }}
                 >
                   <span aria-hidden>{on ? "◉" : "○"}</span>

@@ -39,27 +39,44 @@ Wide tables scroll inside their own panel; the page never scrolls sideways.
 
 ## Palette
 
-Five warm earth colours, each with one job. Contrast is against `--panel`:
+A cream document with plum chrome. All five given colours appear at full strength, doing the job
+their luminance suits:
 
-| Hex | Name | Role | Ratio |
+| Hex | Name | Role | Contrast |
 |---|---|---|---|
-| `#443742` | Mauve Shadow | `--line`, structure | 1.47:1 |
-| `#846C5B` | Olive Wood | `--seal`, sealed fields | 3.35:1 |
-| `#CEA07E` | Light Bronze | `--dim`, secondary text | 7.02:1 |
-| `#EDD9A3` | Soft Peach | `--accent`, highlights | 11.80:1 |
-| `#E2E8C0` | Cream | `--ink`, data | 12.96:1 |
+| `#E2E8C0` | Cream | `--bg`, the page; and the text on chrome | 8.84:1 on chrome |
+| `#EDD9A3` | Soft Peach | `--panel-hi`, a revealed row | 8.05:1 on chrome |
+| `#CEA07E` | Light Bronze | `--accent`, accents on chrome | 4.79:1 on chrome |
+| `#846C5B` | Olive Wood | `--seal`, sealed fields | 4.23:1 on panel |
+| `#443742` | Mauve Shadow | `--chrome` (bars, panel heads) and `--ink` (body text) | 9.67:1 on panel |
 
-Two gaps in the set are closed in `globals.css` rather than fudged. It gives **no background** —
-Mauve Shadow is its darkest colour but far too light for a page, so `--bg` and `--panel` are
-derived plums beneath it and Mauve Shadow does what its luminance suits: borders. And it gives
-**no signal colours**, so `--buy` (`#A9C177` sage) and `--sell` (`#D2765A` terracotta) are
-additions in the same family; the BUY/SELL labels carry the meaning independently, so colour
-reinforces rather than encodes.
+### Why the chrome is plum
 
-Cream and Soft Peach sit 1.1x apart in luminance and cannot both carry text hierarchy — they are
-separated by hue instead. Light Bronze at 1.85x below Cream is what splits primary from
-secondary; keep it at 7:1 or above. The palette also governs `app/icon.svg`,
-`app/opengraph-image.tsx` and the `themeColor` in `app/layout.tsx`.
+The first light version darkened every text role until it passed AA on cream. That turned Light
+Bronze into `#7b4f22` and Olive Wood into `#5c4a3d`. Both cleared the contrast bar and both lost
+the palette: the page came out cream and mud, with none of the given colours visible at strength.
+
+The fix is a **surface**, not a darker text colour. On Mauve Shadow, Cream (8.84:1), Soft Peach
+(8.05:1) and Light Bronze (4.79:1) all clear AA untouched. So the header bar and every panel head
+went plum, and the palette came back. `.panel-head` is the class; inside it, labels and links take
+`--accent` at full strength.
+
+Two derivations remain, and only two:
+
+- `--dim` `#7C6454` — Olive Wood one shade down, 4.75:1 on panel. Prose on cream needs 4.5:1 and
+  Olive Wood itself measures 4.23:1. One shade, not three.
+- `--accent-deep` `#8F5C3A` — Light Bronze darkened, 4.81:1, used **only** where an accent must
+  sit on cream: body links, the clearing tick, focus rings. On chrome, use `--accent`.
+
+`--buy` (`#4F6A24` sage) and `--sell` (`#9C4527` terracotta) are still additions: the palette has
+no signal colours and a blotter needs buy and sell distinguishable. The BUY/SELL labels carry the
+meaning independently, so colour reinforces rather than encodes.
+
+One consequence worth naming: sealed fields are dark bars on a light surface, which is what a
+redacted document actually looks like. The metaphor reads better this way round.
+
+The palette also governs `app/icon.svg`, `app/opengraph-image.tsx` and the `themeColor` in
+`app/layout.tsx`.
 
 ## Running it
 
@@ -138,9 +155,13 @@ Uppercase labels were kept on **panel headers**, where they are conventional chr
 interface, but tracking dropped to 0.04em and size rose to 12px. Section headings became
 sentence-case text rather than tiny tracked caps.
 
-Two flagged patterns were judged false positives here and kept deliberately: the warm palette
-(the rule targets cream *backgrounds*, not warm text on dark) and the four-rectangle SVG mark (a
-logo, not shape-assembled hero art).
+One flagged pattern is judged a false positive and kept: the four-rectangle SVG mark is a logo,
+not shape-assembled hero art.
+
+**Rule 30, cream/beige palette, is now a live hit** and is being accepted deliberately. It was
+previously dismissed because Cream was text on a dark page; the page is now literally cream. The
+palette was specified rather than reached for as a default "tasteful" surface, which is what the
+rule is about, but the tell is real and worth stating rather than explaining away.
 
 A third, **single font for everything**, was a fair hit and is now fixed by the type split
 above.

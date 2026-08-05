@@ -14,9 +14,9 @@ import type { BatchView } from "@/lib/chain"
 export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] }) {
   return (
     <div className="panel">
-      <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+      <div className="panel-head flex items-baseline justify-between px-3 py-2">
         <span className="panel-label">Price grid</span>
-        <span className="text-[13px] text-[var(--dim)]">
+        <span className="text-[13px] opacity-80">
           {ticks.length} ticks, <span className="mono">{ticks[0]}</span> to{" "}
           <span className="mono">{ticks[ticks.length - 1]}</span>
         </span>
@@ -30,9 +30,9 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
               key={t}
               className="mono px-2 py-1 text-[12px]"
               style={{
-                border: `1px solid ${isClearing ? "var(--accent)" : "var(--line)"}`,
-                color: isClearing ? "var(--accent)" : "var(--dim)",
-                background: isClearing ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "transparent",
+                border: `1px solid ${isClearing ? "var(--accent-deep)" : "var(--line)"}`,
+                color: isClearing ? "var(--accent-deep)" : "var(--dim)",
+                background: isClearing ? "color-mix(in srgb, var(--accent-fill) 50%, transparent)" : "transparent",
                 fontVariantNumeric: "tabular-nums",
               }}
               title={isClearing ? "the clearing tick" : undefined}

@@ -1,43 +1,51 @@
 @import "tailwindcss";
 
 /*
- * Warm earth palette. Five given colours, and what each one does.
+ * Warm earth palette: a cream document with plum chrome.
  *
- *   #443742  Mauve Shadow  -> --line     structure          1.47:1  (non-text)
- *   #846C5B  Olive Wood    -> --seal     sealed fields      3.35:1  (non-text)
- *   #CEA07E  Light Bronze  -> --dim      secondary text     7.02:1
- *   #EDD9A3  Soft Peach    -> --accent   highlights        11.80:1
- *   #E2E8C0  Cream         -> --ink      data              12.96:1
+ * All five given colours appear at FULL strength, doing the job their luminance suits:
  *
- * Two things the palette does not give, resolved here rather than fudged:
+ *   #E2E8C0  Cream         --bg          the page, and the text on chrome
+ *   #EDF0DC  (derived)     --panel       panels lift off the page
+ *   #EDD9A3  Soft Peach    --panel-hi    a revealed row, like a highlighter pass
+ *   #CEA07E  Light Bronze  --accent      accents ON chrome                    4.79:1
+ *   #846C5B  Olive Wood    --seal        sealed fields, dark bars on light    4.23:1
+ *   #443742  Mauve Shadow  --chrome      header bars and panel heads
+ *                          --ink         body text on cream                   9.67:1
  *
- * 1. No background. Mauve Shadow is its darkest colour but far too light to be a page — as a
- *    panel it left Olive Wood at 2.29:1 and killed the sealed/readable contrast. So --bg and
- *    --panel are derived plums below it, and Mauve Shadow does what its luminance suits:
- *    borders.
+ * The first attempt at a light page darkened every text role until it passed AA on cream, which
+ * turned Light Bronze into #7b4f22 and Olive Wood into #5c4a3d. Both cleared the contrast bar
+ * and both lost the palette: the page came out cream and mud, with none of the given colours
+ * visible at strength.
  *
- * 2. No signal colours. A blotter needs buy and sell distinguishable, so --buy and --sell are
- *    additions in the same warm family. The BUY/SELL labels carry the meaning independently,
- *    so colour reinforces rather than encodes.
+ * The fix is a surface, not a darker text colour. On Mauve Shadow, Cream (8.84:1), Soft Peach
+ * (8.05:1) and Light Bronze (4.79:1) all clear AA untouched. So the chrome went plum and the
+ * palette came back.
  *
- * Cream and Soft Peach sit 1.1x apart in luminance and cannot both carry text hierarchy; they
- * are separated by hue (pale sage for data, warm gold for accent). Light Bronze at 1.85x below
- * Cream is what actually splits primary from secondary — keep it at 7:1 or above.
+ * Two derivations remain, and only two:
+ *   --dim          #7C6454  Olive Wood one shade down, 4.75:1 on panel. Prose on cream needs
+ *                           4.5:1 and Olive Wood itself measures 4.23:1. One shade, not three.
+ *   --accent-deep  #8F5C3A  Light Bronze darkened, 4.81:1, used ONLY where an accent must sit
+ *                           on cream (body links, the clearing tick). On chrome, use --accent.
+ *
+ * --buy and --sell are still additions: the palette has no signal colours and a blotter needs
+ * buy and sell distinguishable. The BUY/SELL labels carry the meaning independently.
  */
 :root {
-  --bg: #0b080b;
-  --panel: #241d24;
-  --panel-hi: #302732;
-  --line: #443742;
-  --line-hi: #5c4b59;
-  --ink: #e2e8c0;
-  --dim: #cea07e;
+  --bg: #e2e8c0;
+  --panel: #edf0dc;
+  --panel-hi: #edd9a3;
+  --chrome: #443742;
+  --chrome-ink: #e2e8c0;
+  --line: #c9cfae;
+  --line-hi: #b0b892;
+  --ink: #443742;
+  --dim: #7c6454;
   --seal: #846c5b;
-  --buy: #a9c177;
-  --sell: #d2765a;
-  --accent: #edd9a3;
-  /* Minimum height of the sticky identity bar, so it does not shrink to its content and let
-     the page jitter as the block number changes width. */
+  --buy: #4f6a24;
+  --sell: #9c4527;
+  --accent: #cea07e;
+  --accent-deep: #8f5c3a;
   --header-h: 4.5rem;
 
   /*
@@ -116,6 +124,23 @@ input {
   color: var(--dim);
 }
 
+/*
+ * A panel's head is chrome: plum, carrying the palette's light colours.
+ *
+ * This is what brings the palette back on a light page. Text roles on cream have to be dark to
+ * clear AA, which flattens Light Bronze and Olive Wood into mud. On plum they clear it
+ * untouched, so the given colours appear at full strength wherever the chrome does.
+ */
+.panel-head {
+  background: var(--chrome);
+  color: var(--chrome-ink);
+}
+
+.panel-head .panel-label,
+.panel-head a {
+  color: var(--accent);
+}
+
 .panel-label {
   font-size: 12px;
   text-transform: uppercase;
@@ -177,7 +202,7 @@ tbody tr:last-child td {
 }
 
 input {
-  background: #17121a;
+  background: #f6f8ec;
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 7px 8px;
@@ -190,7 +215,7 @@ input::placeholder {
 }
 
 input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-deep);
 }
 
 button {
@@ -204,8 +229,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--accent-deep);
+  color: var(--accent-deep);
 }
 
 button:disabled {
@@ -215,12 +240,12 @@ button:disabled {
 
 /* Keyboard users had no visible focus anywhere: buttons were only styled on :hover. */
 :where(button, a, input, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-deep);
   outline-offset: 2px;
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-deep);
   text-decoration: none;
 }
 
@@ -237,7 +262,7 @@ a:hover {
  */
 @keyframes reveal {
   0% {
-    background-color: color-mix(in srgb, var(--accent) 26%, transparent);
+    background-color: color-mix(in srgb, var(--accent-fill) 60%, transparent);
   }
   100% {
     background-color: transparent;

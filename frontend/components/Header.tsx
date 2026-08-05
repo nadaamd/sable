@@ -1,5 +1,6 @@
 "use client"
 
+import type { BatchView } from "@/lib/chain"
 import {
   CROSS_ADDRESS,
   EXPLAINER_URL,
@@ -8,13 +9,27 @@ import {
   REPO_URL,
 } from "@/lib/deployment"
 
+const PHASE_LABEL: Record<BatchView["phase"], string> = {
+  idle: "awaiting first order",
+  commit: "commit window open",
+  "awaiting-clear": "window closed",
+  cleared: "cleared",
+}
+
+function countdown(seconds: number): string {
+  if (seconds <= 0) return "00:00"
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+}
+
 /**
  * The mark: three sealed fields and one cleared. Same glyph as the favicon, so a tab and the
  * page identify each other.
  */
 function Mark() {
   return (
-    <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden className="shrink-0">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden className="shrink-0">
       <rect x="4" y="6" width="15" height="4" rx="1" fill="var(--seal)" />
       <rect x="4" y="14" width="21" height="4" rx="1" fill="var(--seal)" />
       <rect x="4" y="22" width="10" height="4" rx="1" fill="var(--seal)" />
@@ -35,30 +50,76 @@ function Contract({ label, address }: { label: string; address: string }) {
 }
 
 /**
- * Sticky identity bar plus the one-sentence claim.
+ * A headline number.
  *
- * Sticky because the two facts a reader needs while scrolling a book are which chain they are
- * looking at and how fresh it is — and because the page previously offered no route to the
- * source at all. Returns a fragment so both rows are direct children of the page's flex
- * column, which is what lets the bar stick over the whole document rather than its own parent.
+ * `note` says whether the value is public or sealed, on every tile. The page's entire claim is
+ * about which is which, so stating it beside each number costs one line and removes the need
+ * to infer it.
  */
-export function Header({ blockNumber }: { blockNumber?: number }) {
+function Stat({
+  label,
+  value,
+  note,
+  color = "var(--ink)",
+  small,
+}: {
+  label: string
+  value: string
+  note: string
+  color?: string
+  small?: boolean
+}) {
+  return (
+    <div className="bg-[var(--panel)] px-3 py-3">
+      <div className="panel-label">{label}</div>
+      <div
+        className={small ? "mt-1.5 text-lg" : "mt-1 text-4xl"}
+        style={{ color, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}
+      >
+        {value}
+      </div>
+      <div className="mt-1.5 text-[11px] text-[var(--dim)]">{note}</div>
+    </div>
+  )
+}
+
+/**
+ * Identity bar, the claim, and the headline numbers.
+ *
+ * The clearing price and the matched volume are the only two values this market ever makes
+ * public — which is the whole point — and they used to sit in a side panel below the fold.
+ * They are the page's headline, so they are in its header.
+ *
+ * Returns a fragment so the bar is a direct child of the page's flex column, which is what
+ * lets it stick over the whole document rather than its own parent.
+ */
+export function Header({
+  batch,
+  maxOrders,
+  nowSec,
+  blockNumber,
+}: {
+  batch?: BatchView
+  maxOrders?: number
+  nowSec: number
+  blockNumber?: number
+}) {
+  const cleared = batch?.cleared ?? false
+  const remaining = batch ? batch.commitDeadline - nowSec : 0
+
   return (
     <>
       <div
-        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-[var(--line)] py-2.5"
+        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-[var(--line)] py-3"
         style={{
           background: "color-mix(in srgb, var(--bg) 90%, transparent)",
           backdropFilter: "blur(8px)",
-          // Kept in sync with --header-h so the sticky cross panel clears this bar.
           minHeight: "var(--header-h)",
         }}
       >
-        <div className="flex items-baseline gap-2.5">
-          <span className="self-center">
-            <Mark />
-          </span>
-          <h1 className="text-lg leading-none tracking-[0.22em]">SABLE</h1>
+        <div className="flex items-center gap-3">
+          <Mark />
+          <h1 className="text-2xl leading-none tracking-[0.26em]">SABLE</h1>
           <span className="hidden text-[12px] text-[var(--dim)] sm:inline">the confidential cross</span>
         </div>
 
@@ -93,10 +154,46 @@ export function Header({ blockNumber }: { blockNumber?: number }) {
         </div>
       </div>
 
-      <p className="max-w-3xl text-[12px] leading-relaxed text-[var(--dim)]">
-        A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted orders.
-        The market publishes a price. No participant reveals their hand.
+      <p className="max-w-3xl text-[13px] leading-relaxed">
+        A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted orders.{" "}
+        <span className="text-[var(--dim)]">
+          The market publishes a price. No participant reveals their hand.
+        </span>
       </p>
+
+      <div className="panel grid grid-cols-2 gap-px bg-[var(--line)] md:grid-cols-4">
+        <Stat
+          label="Clearing price"
+          value={!batch ? "—" : cleared ? (batch.clearingPrice === 0 ? "no cross" : String(batch.clearingPrice)) : "—"}
+          note="public"
+          color={cleared ? "var(--accent)" : "var(--seal)"}
+        />
+        <Stat
+          label="Matched volume"
+          value={!batch ? "—" : cleared ? String(batch.matchedVolume) : "—"}
+          note="public"
+          color={cleared ? "var(--ink)" : "var(--seal)"}
+        />
+        <Stat
+          label="Batch"
+          value={batch ? `#${batch.id}` : "—"}
+          note={
+            batch
+              ? batch.phase === "commit"
+                ? `${PHASE_LABEL[batch.phase]} · ${countdown(remaining)}`
+                : PHASE_LABEL[batch.phase]
+              : "reading chain…"
+          }
+          color={cleared ? "var(--buy)" : "var(--accent)"}
+          small
+        />
+        <Stat
+          label="Orders"
+          value={batch && maxOrders ? `${batch.orderCount} / ${maxOrders}` : "—"}
+          note="side, limit, size — all sealed"
+          small
+        />
+      </div>
     </>
   )
 }

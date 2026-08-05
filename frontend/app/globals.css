@@ -18,9 +18,9 @@
   --buy: #4ac25c;
   --sell: #ff6259;
   --accent: #e0b055;
-  /* Height of the sticky identity bar. The sticky cross panel offsets by this, so the two
-     never overlap — if the bar's padding changes, this is the single place to follow. */
-  --header-h: 3.25rem;
+  /* Minimum height of the sticky identity bar, so it does not shrink to its content and let
+     the page jitter as the block number changes width. */
+  --header-h: 3.5rem;
 }
 
 * {

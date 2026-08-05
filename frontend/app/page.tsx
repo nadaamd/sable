@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Blotter } from "@/components/Blotter"
-import { CrossPanel } from "@/components/CrossPanel"
 import { Header } from "@/components/Header"
+import { PriceGrid } from "@/components/PriceGrid"
+import { Section } from "@/components/Section"
 import { DeskKeys } from "@/components/DeskKeys"
 import { RfqFeed } from "@/components/RfqFeed"
 import { loadMarket, loadRewards, loadRfq, type MarketView, type RewardsView, type RfqMessage } from "@/lib/chain"
@@ -116,9 +117,37 @@ export default function Page() {
 
   const batches = market ? Array.from({ length: market.currentBatch + 1 }, (_, i) => i) : []
 
+  const batchPicker =
+    market && batches.length > 1 ? (
+      <div className="scroll-x flex items-center gap-1.5 text-[12px]">
+        {batches.map((b) => (
+          <button
+            key={b}
+            onClick={() => setViewBatch(b === market.currentBatch ? undefined : b)}
+            className="shrink-0 !px-2 !py-1"
+            style={{
+              borderColor: b === market.batch.id ? "var(--accent)" : "var(--line)",
+              color: b === market.batch.id ? "var(--accent)" : "var(--dim)",
+            }}
+          >
+            {b}
+            {b === market.currentBatch ? " live" : ""}
+          </button>
+        ))}
+      </div>
+    ) : null
+
+  // gap-4 here, and Sections add their own top margin. `Header` must stay a DIRECT child of
+  // <main>: its sticky bar is only sticky across its parent's box, so wrapping it in a div
+  // would pin it to that div and let it scroll away with the hero.
   return (
-    <main className="mx-auto flex max-w-[1400px] flex-col gap-4 p-3 sm:p-4">
-      <Header blockNumber={market?.blockNumber} />
+    <main className="mx-auto flex max-w-[1400px] flex-col gap-4 p-3 pb-10 sm:p-4">
+      <Header
+        batch={market?.batch}
+        maxOrders={market?.maxOrders}
+        nowSec={nowSec}
+        blockNumber={market?.blockNumber}
+      />
 
       {error && (
         <div className="panel px-3 py-2 text-[12px]" style={{ borderColor: "var(--sell)" }}>
@@ -127,80 +156,54 @@ export default function Page() {
       )}
 
       {/*
-        The primary control, above the book it acts on. It also carries the "this is sealed, not
-        broken" line, so there is one explanation in one place rather than two boxes competing.
+        Sections follow the market's own order: what stayed sealed, how the desks negotiated
+        before committing, and the rules they all played under. The control that acts on the
+        book sits inside the book's own band, not in a distant column.
       */}
-      <DeskKeys keys={keys} active={active} onToggle={toggle} onAdd={addKey} onForget={forgetPasted} />
+      <Section label="The sealed book" aside={batchPicker}>
+        <DeskKeys keys={keys} active={active} onToggle={toggle} onAdd={addKey} onForget={forgetPasted} />
+        {market ? <Blotter batch={market.batch} /> : <BookSkeleton />}
+      </Section>
 
-      {market && batches.length > 1 && (
-        <div className="scroll-x flex items-center gap-2 text-[12px]">
-          <span className="shrink-0 text-[var(--dim)]">batch</span>
-          {batches.map((b) => (
-            <button
-              key={b}
-              onClick={() => setViewBatch(b === market.currentBatch ? undefined : b)}
-              className="shrink-0"
-              style={{
-                borderColor: b === market.batch.id ? "var(--accent)" : "var(--line)",
-                color: b === market.batch.id ? "var(--accent)" : "var(--dim)",
-              }}
-            >
-              {b}
-              {b === market.currentBatch ? " (live)" : ""}
-            </button>
-          ))}
-        </div>
-      )}
+      <Section label="Pre-trade negotiation">
+        <RfqFeed messages={rfq} deskName={deskName} />
+      </Section>
 
-      {!market ? (
-        <Skeleton />
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-          {/*
-            The cross leads on mobile — two public numbers beat a table you have to scroll — and
-            stays in view on desktop, where the book can run to 32 rows.
-          */}
-          <div className="lg:order-2 lg:sticky lg:self-start lg:top-[calc(var(--header-h)+1rem)]">
-            <CrossPanel batch={market.batch} ticks={market.ticks} nowSec={nowSec} />
-          </div>
+      {market && (
+        <Section label="Market rules">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PriceGrid batch={market.batch} ticks={market.ticks} />
 
-          <div className="flex flex-col gap-4 lg:order-1">
-            <Blotter batch={market.batch} />
-            <RfqFeed messages={rfq} deskName={deskName} />
-
-            <div className="panel">
+            <div className="panel flex flex-col">
               <div className="border-b border-[var(--line)] px-3 py-2">
-                <span className="panel-label">Market</span>
+                <span className="panel-label">Parameters &amp; disclosure</span>
               </div>
               <div className="px-3 py-2 text-[12px]">
-                <Line
-                  k="ticks"
-                  v={`${market.ticks.length} (${market.ticks[0]}–${market.ticks[market.ticks.length - 1]})`}
-                />
                 <Line k="commit window" v={`${market.commitWindow}s`} />
                 <Line k="max orders / batch" v={String(market.maxOrders)} />
-                <Line k="orders in batch" v={`${market.batch.orderCount} / ${market.maxOrders}`} />
+                <Line k="orders in this batch" v={`${market.batch.orderCount} / ${market.maxOrders}`} />
                 {rewards && (
                   <>
                     <Line k="rfq epoch settled" v={String(rewards.epoch)} />
                     <Line
-                      k="reward pool"
+                      k="messaging rewards"
                       v={`${(Number(rewards.pool) / 1e18).toFixed(4)} COTI · ${rewards.usageUnits} cells`}
                     />
                   </>
                 )}
               </div>
-              <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
-                What is public: that an address submitted an order and when, the clearing price,
-                and the matched volume. What is never public: side, limit, size, each desk&apos;s
-                fill, and everything about orders that did not cross.
+              <div className="mt-auto border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
+                <span className="text-[var(--ink)]">Public:</span> that an address submitted an order
+                and when, the clearing price, the matched volume.{" "}
+                <span className="text-[var(--ink)]">Never public:</span> side, limit, size, each
+                desk&apos;s fill, and everything about orders that did not cross.
               </div>
             </div>
           </div>
-        </div>
+        </Section>
       )}
 
-      <footer className="pb-2 text-[12px] leading-relaxed text-[var(--dim)]">
+      <footer className="border-t border-[var(--line)] pt-3 text-[12px] leading-relaxed text-[var(--dim)]">
         Read-only. No wallet, no signature, no permission needed to fetch this entire book — that
         is the point. Testnet only.
       </footer>
@@ -215,28 +218,25 @@ export default function Page() {
  * and on camera. The skeleton is sealed rows — the shape the real book will take — so the first
  * thing a visitor sees is already the point being made.
  */
-function Skeleton() {
+function BookSkeleton() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-      <div className="panel lg:order-1">
-        <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
-          <span className="panel-label">Order book</span>
-          <span className="text-[12px] text-[var(--dim)]">reading chain…</span>
-        </div>
-        <div className="flex flex-col">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="flex items-center gap-6 border-b border-[var(--line)] px-3 py-2 last:border-0">
-              <span className="text-[var(--dim)]">#{i}</span>
-              <span className="sealed">{"█".repeat(11)}</span>
-              <span className="sealed">{"█".repeat(4)}</span>
-              <span className="sealed ml-auto">{"█".repeat(5 + (i % 3))}</span>
-            </div>
-          ))}
-        </div>
+    <div className="panel">
+      <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
+        <span className="panel-label">Order book</span>
+        <span className="text-[12px] text-[var(--dim)]">reading chain…</span>
       </div>
-      <div className="panel px-3 py-6 lg:order-2">
-        <span className="panel-label">The cross</span>
-        <div className="mt-3 text-4xl text-[var(--seal)]">██ · ██</div>
+      <div className="flex flex-col">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-6 border-b border-[var(--line)] px-3 py-2 last:border-0"
+          >
+            <span className="text-[var(--dim)]">#{i}</span>
+            <span className="sealed">{"█".repeat(11)}</span>
+            <span className="sealed">{"█".repeat(4)}</span>
+            <span className="sealed ml-auto">{"█".repeat(5 + (i % 3))}</span>
+          </div>
+        ))}
       </div>
     </div>
   )

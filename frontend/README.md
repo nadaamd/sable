@@ -7,25 +7,37 @@ with public `view` calls — no wallet, no signature, no permission — and rend
 because that is what the chain stores. Unlock one desk's key and that desk's rows resolve
 into numbers while every other row stays █.
 
-## Panels
+## Layout
 
-- **View as desk** — the primary control, at the top, above the book it acts on. Keys are
-  listed but inactive by default, so the terminal opens on the honest view. Unlocking one desk
-  flashes exactly the rows that just became readable, because that transition *is* the product
-  and it used to happen invisibly between two frames.
-- **Order book** — every order in the batch: trader and index public, side/limit/size as
-  ciphertexts. A short ciphertext fingerprint sits next to each row, so it is visible that
-  there is real data there and that it is opaque. Sealed cells vary in width, derived from the
-  ciphertext (which is public) — a uniform grid read as a loading placeholder.
-- **The cross** — the only two numbers that ever become public: clearing price and matched
-  volume. Plus the public price grid with the clearing tick marked, and a commit countdown. It
-  leads on mobile and sticks in view on desktop, where a book can run to 32 rows.
-- **RFQ channel** — the encrypted pre-trade messages between desks. Sender and recipient can
-  each decrypt; nobody else can. An IOI carries a side and a size and deliberately no price.
+The page follows the market's own order rather than presenting a flat stack of equal-weight
+panels, which said nothing about which control acted on which data.
 
-Wide tables scroll inside their own panel; the page never scrolls sideways. Body copy is 12px
-at a 6:1 contrast ratio — the previous `--dim` measured 4.08:1, below WCAG AA, and it carried
-nearly every explanatory line on the page.
+**Header.** A sticky identity bar — mark, wordmark, live block, both contracts, and links out
+to the code and the write-up — over the headline figures: clearing price, matched volume, batch
+phase with its countdown, and order count. Those first two are the only values this market ever
+makes public, so they are the page's headline; they used to sit in a side panel below the fold.
+Each tile states whether its value is public or sealed, because that distinction is the entire
+claim.
+
+The bar must stay a **direct child** of `<main>`: `position: sticky` is bounded by the parent's
+box, so wrapping it in a spacing div pins it to that div and it scrolls away.
+
+**The sealed book.** The *View as desk* control sits inside this band, directly above the book
+it acts on — keys listed but inactive, so the terminal opens on the honest view. Unlocking one
+desk flashes exactly the rows that just became readable; that transition *is* the product and
+it used to happen invisibly between two frames. Sealed cells vary in width, derived from the
+ciphertext (which is public) — a uniform grid read as a loading placeholder. The batch picker
+lives in this band's heading, where it belongs.
+
+**Pre-trade negotiation.** The encrypted IOIs between desks. Sender and recipient can each
+decrypt; nobody else can. An IOI carries a side and a size and deliberately no price.
+
+**Market rules.** The public price grid with the clearing tick marked, beside the parameters and
+the disclosure summary.
+
+Wide tables scroll inside their own panel; the page never scrolls sideways. Body copy is 12px at
+8.2:1 — the original `--dim` measured 4.08:1, below WCAG AA, and it carried nearly every
+explanatory line on the page.
 
 ## Running it
 

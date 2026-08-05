@@ -29,11 +29,11 @@ function countdown(seconds: number): string {
  */
 function Mark() {
   return (
-    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden className="shrink-0">
-      <rect x="4" y="6" width="15" height="4" rx="1" fill="var(--seal)" />
-      <rect x="4" y="14" width="21" height="4" rx="1" fill="var(--seal)" />
-      <rect x="4" y="22" width="10" height="4" rx="1" fill="var(--seal)" />
-      <rect x="17" y="22" width="7" height="4" rx="1" fill="var(--accent)" />
+    <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden className="shrink-0">
+      <rect x="4" y="5" width="15" height="4.5" rx="1" fill="var(--seal)" />
+      <rect x="4" y="13.75" width="21" height="4.5" rx="1" fill="var(--seal)" />
+      <rect x="4" y="22.5" width="10" height="4.5" rx="1" fill="var(--seal)" />
+      <rect x="16" y="22.5" width="8" height="4.5" rx="1" fill="var(--accent)" />
     </svg>
   )
 }
@@ -70,15 +70,16 @@ function Stat({
   small?: boolean
 }) {
   return (
-    <div className="bg-[var(--panel)] px-3 py-3">
+    <div className="bg-[var(--panel)] px-4 py-4">
       <div className="panel-label">{label}</div>
       <div
-        className={small ? "mt-1.5 text-lg" : "mt-1 text-4xl"}
-        style={{ color, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}
+        // 1.6x apart, not 2.2x: the headline pair must dominate without the row looking broken.
+        className={small ? "mt-1.5 text-[28px] sm:text-[32px]" : "mt-1.5 text-[44px] sm:text-[52px]"}
+        style={{ color, fontVariantNumeric: "tabular-nums", lineHeight: 1.05 }}
       >
         {value}
       </div>
-      <div className="mt-1.5 text-[11px] text-[var(--dim)]">{note}</div>
+      <div className="mt-2 text-[11px] text-[var(--dim)]">{note}</div>
     </div>
   )
 }
@@ -110,17 +111,19 @@ export function Header({
   return (
     <>
       <div
-        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-[var(--line)] py-3"
+        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[var(--line)] py-4"
         style={{
           background: "color-mix(in srgb, var(--bg) 90%, transparent)",
           backdropFilter: "blur(8px)",
           minHeight: "var(--header-h)",
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <Mark />
-          <h1 className="text-2xl leading-none tracking-[0.26em]">SABLE</h1>
-          <span className="hidden text-[12px] text-[var(--dim)] sm:inline">the confidential cross</span>
+          <h1 className="text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
+          <span className="ml-1 hidden border-l border-[var(--line)] pl-4 text-[13px] text-[var(--dim)] md:inline">
+            the confidential cross
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
@@ -154,7 +157,7 @@ export function Header({
         </div>
       </div>
 
-      <p className="max-w-3xl text-[13px] leading-relaxed">
+      <p className="max-w-3xl text-[15px] leading-relaxed">
         A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted orders.{" "}
         <span className="text-[var(--dim)]">
           The market publishes a price. No participant reveals their hand.

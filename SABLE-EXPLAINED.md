@@ -1,448 +1,575 @@
-# Sable, explained
+# Sable
 
-**A stock market where nobody — not even the people running it — can see what anyone is
-buying or selling. And yet it still works out the right price.**
+**A sealed-bid, uniform-price call auction whose matching engine executes on encrypted
+orders, on-chain, with no operator able to read the book.**
 
-That sentence sounds impossible. This document explains why it isn't, how we built it, and
-what it proves.
+Orders are submitted as ciphertext — side, limit price and size. The clearing price and the
+pro-rata allocation are computed under garbled circuits on COTI's gcEVM, without any order
+ever being decrypted. Two values become public per batch: the uniform clearing price and the
+total matched volume. Each participant can decrypt exactly one additional value: their own
+fill. Nothing else is recoverable by anyone, including the authors of the contract.
 
----
-
-### How to read this
-
-- **Two minutes?** Read *The problem* and *The idea*. That's the whole story.
-- **Curious how it's possible?** Add *The trick* and *A batch, start to finish*.
-- **Technical?** Jump to *The hard parts* — that's where the real engineering is.
-- **Thinking about markets and money?** *Why this couldn't exist before* and *What it
-  unlocks*.
-
-No blockchain or AI knowledge is assumed anywhere. Where a technical word is unavoidable, it
-gets explained on the spot.
+The full loop — encrypted bilateral negotiation between autonomous agents, sealed order
+submission, blind clearing, confidential settlement in PrivateERC20 — runs on COTI testnet
+and is verified against an independent plaintext implementation of the same mechanism.
 
 ---
 
-## The problem
+### Scope of this document
 
-Imagine you manage a pension fund and you need to sell a very large block of shares.
+This is the complete design and verification record: the market microstructure, the
+confidential execution model, the specific engineering constraints imposed by computing on
+garbled data, the measured cost model, and the failure containment. It assumes familiarity
+with blockchain execution and with autonomous agents; it does not assume prior exposure to
+secure multi-party computation, which is introduced where it matters.
 
-The moment anyone finds out, you're in trouble. Traders who learn you're a big seller will
-sell first, pushing the price down before your order goes through, then buy back cheaply
-from you. You end up with a worse price, and the difference goes into their pocket. This
-isn't a hypothetical or a loophole — it is one of the best-documented phenomena in finance.
-Simply *being seen* costs you money.
+Every figure quoted is measured on testnet unless explicitly attributed to the cost model.
 
-So for decades, big institutions have used **dark pools**: private venues where you can place
-a large order without broadcasting it. A large share of US stock trading — routinely more than
-a third — now happens away from the public exchanges.
+- **Microstructure and mechanism:** §1–§4
+- **The agent layer:** §5
+- **A verified run, with the confidentiality measurement:** §6–§7
+- **Engineering findings — the substantive part:** §8–§10
+- **Positioning and applications:** §11–§12
+- **Verification methodology and reproduction:** §13–§15
 
-Dark pools have one structural flaw. Someone has to run them — and that someone *can* see
-everything. You're not avoiding exposure; you're concentrating it into a single party and
-hoping they behave. They haven't always. In 2016, both Barclays and Credit Suisse settled
-with US regulators over misrepresenting how their dark pools actually worked and who was
-allowed to see the flow inside them.
+---
 
-That's the bind. **A market that hides your order needs an operator you can see. An operator
-who can see is an operator who can cheat.**
+## 1. The problem
 
-## The idea
+Execution on a transparent venue leaks the order before it settles. On a public DEX the
+sequence is mechanical: the transaction enters the mempool, its size and direction are
+readable, and the price moves against it before inclusion. This is not an implementation
+defect to be patched at the application layer — it is a property of executing intent on a
+ledger where intent is visible. Every mitigation deployed so far (private relays, commit
+schemes, batch inclusion) narrows the window without removing the underlying asymmetry: the
+order is eventually visible to whoever settles it.
 
-Sable is a market where the operator *cannot* cheat, because the operator cannot see.
+Traditional finance addressed the same asymmetry with dark pools, and inherited a different
+problem. A dark pool conceals the order from the market but not from its operator. The
+counterparty risk is replaced by operator risk, concentrated in a single party whose
+incentive to observe the flow is exactly proportional to the flow's value. The historical
+record is unambiguous: in 2016 both Barclays and Credit Suisse settled with the SEC and the
+NYAG over misrepresenting how their dark pools ranked and exposed order flow.
 
-Not "promises not to look." Not "logs every access." Cannot. The orders arrive encrypted, the
-price is computed while they stay encrypted, and the only things that ever become readable
-are the final price, the total amount traded, and — privately, to each participant alone —
-how much of their own order was filled.
+The constraint is structural. **A venue that conceals your order requires an operator; an
+operator that can read the book can trade against it.** Confidentiality enforced by policy
+is confidentiality contingent on the operator's incentives.
 
-There is no administrator with a master key. There is no "break glass in case of emergency."
-The code that runs the market is public and anyone can read it. What it operates on is
-mathematically opaque to everyone, including us, the people who wrote it.
+Sable removes the operator from the trust boundary. Not by auditing access, not by
+attesting to a policy — by making the book unreadable to the process that matches it.
 
-## The trick
+## 2. Design
 
-Here's the part that sounds like science fiction and isn't.
+Sable is a periodic call auction. Orders accumulate over a commit window; at the close, any
+address may trigger clearing. The contract computes a single uniform price at which the
+maximum volume crosses, allocates the long side pro-rata, and settles both legs in
+confidential tokens. Every intermediate value in that computation is a garbled handle. No
+branch in the Solidity source ever reads an encrypted value.
 
-There is a branch of cryptography that lets several parties who don't trust each other
-compute a shared result from their private inputs — without any of them revealing those
-inputs, and without a trusted middleman. It's decades old in theory. Until recently it was
-far too slow to be useful.
+The trust model that results:
 
-A useful mental image: everyone writes their order on a slip of paper and seals it in an
-envelope. Instead of a person opening the envelopes, imagine a machine that is *physically
-incapable* of showing anyone what's inside, yet can still add up the slips and print out the
-resulting price. The machine's design is published, so you can check it does exactly what it
-claims — you just can't see the paper. Not you, not the machine's builder, not anyone.
+- **No privileged role.** Clearing is permissionless. There is no operator to bribe, delay,
+  or subpoena, and no admin key, master key, or recovery key. The escape hatch in §10 is
+  callable by anyone and can only return escrow to its depositor.
+- **No trusted hardware.** Confidentiality rests on multi-party computation, not on an
+  enclave whose vendor is a single point of compromise.
+- **Public mechanism, private inputs.** The contract is readable and the mechanism is
+  auditable in full. Its inputs are cryptographically opaque, symmetrically, to everyone
+  including us.
 
-The specific technique is called **garbled circuits**. The network Sable runs on —
-[COTI](https://coti.io) — makes them fast enough to actually use, which is the development
-that makes this project possible at all rather than merely describable.
+## 3. The confidential execution model
 
-Two consequences worth holding onto, because everything else follows from them:
+COTI's gcEVM extends the EVM with a garbled-circuit MPC layer. The relevant properties for
+a market designer:
 
-1. **The computer never learns the values it is working with.** It manipulates them the way
-   you'd rearrange sealed envelopes: correctly, and blindly.
-2. **Therefore it cannot make decisions the normal way.** More on this in *The hard parts* —
-   it's the single most interesting engineering constraint in the project.
+**Two value domains.** Encrypted values exist either as *ciphertext* in storage (`ctUint64`,
+`ctBool`) or as *garbled handles* valid for the duration of a transaction (`gtUint64`,
+`gtBool`). Arithmetic and comparison operate on garbled handles. Moving between the domains
+— `onBoard` to lift storage into computation, `offBoard` to seal a result back — is an
+explicit operation with its own cost, and that cost dominates. §9 quantifies it.
 
-## A batch, start to finish
+**Encrypted inputs are bound to a call.** A transaction input (`itUint64`) is encrypted
+under a key derived from the sender, the target contract and the function selector, so a
+ciphertext cannot be replayed against a different entry point.
 
-Rather than describe Sable abstractly, here is a run that actually happened on COTI's test
-network. Every number below was produced by the live system, and every one of them was
-checked against an independently written model of what *should* happen.
+**Two offboarding targets, and they are not interchangeable.** `offBoard` seals under the
+network key, producing a ciphertext the contract can later lift back into computation.
+`offBoardToUser` seals under a specific user's AES key, producing a ciphertext only that
+user can decrypt and which the contract can never re-onboard. Choosing wrongly is a
+runtime failure, not a compile-time one; §8 covers where this cost us.
 
-Three automated trading desks take part. Each has its own private instructions — how much to
-trade, the worst price it will accept — which never leave its own machine.
+**There is no branching.** The execution layer does not learn the values it manipulates, so
+control flow cannot depend on them. Every conditional in the market must be expressed as an
+oblivious select — compute both arms, blend under an encrypted selector. This is the single
+constraint that shapes the entire implementation, and §8 is largely about its consequences.
 
-### Step 1 — They feel each other out, privately
+## 4. Mechanism
 
-Before committing anything, the desks send each other encrypted messages: *"I have interest
-this large, on this side."* Deliberately no price. Only the intended recipient can read each
-message; to everyone else it is noise.
+### Clearing
 
-Six messages went out. Then each desk sized up what it had learned:
-
-```
-Atlas     saw 20 of buying and 65 of selling interest
-          → wanted 70, could only see 65 of supply, so committed 65 and held 5 back
-Borealis  saw 70 and 20 of buying, 65 of selling
-          → committed its full 20
-Cygnus    saw 70 and 20 of buying interest
-          → committed its full 65
-```
-
-That middle line is worth pausing on. **Atlas voluntarily shrank its own order** because the
-encrypted conversation told it the other side of the market wasn't big enough to absorb the
-full amount. Committing to a trade means locking up collateral, so Atlas locked 6,639 units
-instead of 7,150 — about 7% less capital tied up — and it lost nothing by doing so, because
-that extra amount was never going to trade anyway.
-
-This is the private negotiation earning its keep in a way you can measure. And it only works
-*because* the messages are encrypted: announcing "I need to buy 70" in the open is simply
-telling the market to raise its price against you.
-
-### Step 2 — Sealed orders go in
-
-Each desk submits its real orders, encrypted: which direction, at what price, how much.
-Six orders in total. Anyone in the world can look at them. Nobody can read them.
-
-At this point the desks also lock up collateral, so that a trade, once matched, is guaranteed
-to settle. The amount locked is encrypted too — and both types of token are always moved,
-one of them by an encrypted zero, so that even *which token moved* gives nothing away about
-whether an order was a buy or a sell.
-
-### Step 3 — The market finds the price, blind
-
-At a fixed moment the window closes and anyone can trigger the settlement. Not a privileged
-operator — anyone. There is no one to bribe, delay, or beg.
-
-The market then works out the single price at which the largest possible amount can trade.
-It does this over the whole set of sealed orders, without ever opening one.
-
-Result: **price 101, and 65 units changed hands.**
-
-Those two numbers become public. That is the point — a price is a public good, useful to
-everyone. Everything that produced it stays sealed forever.
-
-### Step 4 — Each desk learns its own fill, and only its own
-
-Every participant can now decrypt one number: how much of their own order went through.
+Over a public, strictly ascending price grid `P = [p₁ … p_K]`, with every order field
+encrypted:
 
 ```
-Atlas     order 1 → 37 filled     Cygnus  order 1 → 20 filled
-Atlas     order 2 → 28 filled     Cygnus  order 2 → 35 filled
-Borealis  order   →  0 filled     Cygnus  order 3 → 10 filled
+for each tick k:
+  demand(k) = Σᵢ mux( isBuyᵢ ∧ limitᵢ ≥ p_k , sizeᵢ , 0 )
+  supply(k) = Σᵢ mux( ¬isBuyᵢ ∧ limitᵢ ≤ p_k , sizeᵢ , 0 )
+  crossed(k) = min( demand(k), supply(k) )
+
+k* = argmax_k crossed(k)
 ```
 
-Borealis's price was too low to trade at 101, so it didn't trade — and got every unit of its
-collateral back. Its order remains sealed permanently. **An order that doesn't trade reveals
-nothing at all, forever.** In a conventional market, unfilled orders are exactly what leaks
-your intentions.
+`demand` is non-increasing in `k` and `supply` is non-decreasing, so the curves cross
+exactly once. `k*` is therefore the volume-maximising price by construction rather than by
+search heuristic, and the argmax is realised as a `mux` chain with strict `>`, which resolves
+ties to the lowest tick deterministically.
 
-We tested the confidentiality directly rather than asserting it. Cygnus attempted to decrypt
-Atlas's fill of 37. It got `3.3383808768725014e+38` — meaningless noise. Here is the full
-picture, measured:
+The grid is public. This is a deliberate disclosure: it bounds the clearing cost to
+`O(orders × levels)` and it reveals nothing about the book, since a tick's presence in the
+grid says nothing about whether any order sits at it.
+
+### Allocation, and the invariant that keeps the contract solvent
+
+The long side is rationed pro-rata to order size, still encrypted. The direct formula is
+subtly and dangerously wrong.
+
+The short side satisfies `sideTotal == matched`, so its ratio is exactly 1 and it never
+truncates. The long side, computed as `⌊sizeᵢ · matched / sideTotal⌋`, does truncate — but
+per-order, so the truncations do not sum to the aggregate truncation. The two sides then
+move different quantities of base while the contract holds exactly what was escrowed. The
+contract pays out more than it took in, on every batch where rationing occurs.
+
+A one-unit counterexample: 7 of demand against 10 of supply, sellers at 5 and 5. Buyers
+receive 7; sellers deliver 3 + 3 = 6. One unit short, permanently, and undetectable from
+inside an encrypted computation.
+
+The fix rounds the *cumulative* share and takes differences:
 
 ```
-holding no keys        can read 0 of 6 orders
-holding Atlas's key    can read 2 of 6   (exactly Atlas's own two)
-holding Borealis's     can read 1 of 6   (exactly its own)
-holding Cygnus's       can read 3 of 6   (exactly its own three)
+cum_i  = Σ sizes of same-side participants up to and including i
+q_i    = ⌊ cum_i · V / T ⌋
+fill_i = q_i − q_{i−1}
 ```
 
-Each participant sees precisely their own rows. Not one more.
+The quotients telescope: the fills sum to `⌊T·V/T⌋ = V` exactly on both sides, while each
+fill stays within one unit of its ideal share. Conservation of value is a property of the
+formula, not the result of a reconciliation pass — which matters, because a reconciliation
+pass would have to branch on encrypted quantities.
 
-### Step 5 — Money moves, still privately
+Neither clearing nor allocation branches on which side is long. That fact is itself
+encrypted.
 
-Each desk collects what it's owed. The amounts are encrypted, so balances don't leak
-positions. The books balanced exactly:
+### Escrow and settlement
+
+`submitOrder` escrows under a mux, so the collateral leg is chosen obliviously:
 
 ```
-Atlas    received 65 units, paid 6,565
-Cygnus   delivered 65 units, received 6,565
-Borealis unchanged — fully refunded
+escrowQuote = mux( isBuy, 0, size × limit )   // buy → size × limit
+escrowBase  = mux( isBuy, size, 0 )           // buy → 0
 ```
 
-And a final touch: the messaging layer that carried the private negotiation **pays the desks
-for using it.** Each collected a small reward for the encrypted data it stored. The
-infrastructure funds the confidentiality it depends on.
+Both token legs are always transferred, one of them an encrypted zero. A pattern of
+transfers that varied with the side would leak the side, so it does not vary.
 
-## What is public, and what never is
+`PrivateERC20._update` terminates in a `require` over a decrypted success bit, so an
+underfunded escrow reverts. The escrow is binding, not advisory.
 
-| Anyone can see | Nobody can ever see |
+Settlement is pull-based. Clearing writes three ciphertexts per order — `fill` under the
+trader's key, `baseOut` and `quoteOut` under the network key — and each trader calls
+`claim()` themselves. This keeps clearing at fixed cost regardless of participant count and
+places the (dominant) encrypted-transfer cost with the party that benefits from it. §9 shows
+why that allocation of cost is not incidental.
+
+Admissibility is enforced at submission with exactly one deliberate decryption — a single
+bit:
+
+```solidity
+gtBool admissible = and( le(size, maxOrderSize),
+                         and( ge(limit, ticks[0]), le(limit, ticks[K-1]) ) );
+if (!MpcCore.decrypt(admissible)) revert OrderOutsideBounds();
+```
+
+One bit leaks: whether a rejected order was out of bounds. In exchange, the constructor's
+overflow bounds become enforceable rather than assumed — `MAX_ORDERS × maxOrderSize ≤ 2³²−1`
+and `maxOrderSize × topTick ≤ 2⁶⁴−1`, checked at deployment, keep every product in the
+kernel inside `uint64` without a single encrypted overflow check in the hot path.
+
+### Why a call auction rather than a continuous book
+
+Continuous matching restores latency as an edge and re-imports the ordering games that
+motivated the design. A periodic uniform-price auction removes the speed race by
+construction: within a batch, arrival order does not affect the price received.
+
+This is not a novel mechanism, which is the point. It is the design behind the closing cross
+that sets official reference prices on major exchanges, behind CoW Protocol's batches, and
+behind the Budish–Cramton–Shim frequent-batch-auction literature. It is also materially
+cheaper on gcEVM, since clearing amortises over the batch instead of running per order.
+
+The mechanism carries an incentive property worth stating explicitly: under a uniform price,
+shading a limit mostly risks the fill without improving the execution price. Truthful
+bidding is approximately optimal. That property comes from the auction format, not from a
+heuristic in the agent code — which is what makes the agent layer in §5 legible rather than
+adversarial.
+
+## 5. The agent layer
+
+Three desks operate as autonomous agents. Each carries a **private mandate** — target size,
+reservation price, laddering preference — that never leaves its own process. Strategy is
+deterministic with no model calls: a run is reproducible and every number in it is
+independently checkable, which is a requirement for verification, not an aesthetic choice.
+
+Before committing, desks exchange encrypted indications of interest over COTI's
+`PrivateMessaging`: side and size, deliberately no price, readable only by the recipient.
+Payloads are capped at 24 bytes per chunk by the messaging layer, which the IOI encoding
+respects (`IOI:B:70`).
+
+Because the auction already makes truthful bidding near-optimal, the RFQ is not a price
+negotiation. What it determines is **whether to commit capital at all**:
+
+```
+committed = clamp( visible opposing interest, probe floor, own target )
+```
+
+Escrowing against counterparty interest that is not there is pure capital cost. In the
+verified run below, Atlas targets 70, observes 65 of opposing supply, commits 65, and locks
+6,639 quote units instead of 7,150 — 511 units freed, with no reduction in fill, since the
+unmatched 5 was never going to trade. A probe floor prevents the rule from collapsing to
+zero when the inbox is empty.
+
+The IOI must be encrypted for the rule to be safe. Broadcasting "I need to buy 70" in clear
+is an instruction to the market to reprice against you.
+
+`PrivateMessaging` pays each desk in proportion to the encrypted cells it stored, so the
+protocol funds the confidential negotiation the mechanism depends on.
+
+## 6. A verified run
+
+The following is a single `npm run agents` execution on COTI testnet. Every value was
+produced by the live system and checked against `scripts/agents/reference.ts`, an
+independent plaintext implementation of the same mechanism.
+
+**Negotiation.** Six encrypted IOIs, 3.12M gas. Each desk then sizes:
+
+```
+Atlas     inbox: BUY 20, SELL 65   → target 70, sees 65 of supply, commits 65
+Borealis  inbox: BUY 70, SELL 65   → commits 20 in full
+Cygnus    inbox: BUY 70, BUY 20    → commits 65 in full
+```
+
+**Submission.** Six sealed orders, ~2.8M gas each. Publicly enumerable, individually
+unreadable. Escrow locked under mux; both legs moved.
+
+**Clearing.** The commit window closes; clearing is triggered permissionlessly.
+
+```
+price 101, matched volume 65, 13,130,009 gas
+```
+
+Those two values become public. Everything that produced them stays sealed.
+
+**Allocation.** Each trader decrypts exactly one value — their own fill:
+
+```
+Atlas    order 1 → 37      Cygnus  order 1 → 20
+Atlas    order 2 → 28      Cygnus  order 2 → 35
+Borealis order   →  0      Cygnus  order 3 → 10
+```
+
+All six match the reference engine. Borealis's limit was below 101, so it did not trade and
+was refunded in full; its order stays sealed permanently. **An unmatched order discloses
+nothing, ever** — which inverts the usual leakage profile, since on a transparent venue
+resting unfilled orders are precisely what reveals intent.
+
+Confidentiality was measured rather than asserted. Cygnus attempted to decrypt Atlas's fill
+of 37 and obtained `3.3383808768725014e+38`. The full visibility matrix:
+
+```
+no keys held           reads 0 of 6 orders
+Atlas's key            reads 2 of 6   (exactly its own two)
+Borealis's key         reads 1 of 6   (exactly its own)
+Cygnus's key           reads 3 of 6   (exactly its own three)
+```
+
+Each key reads precisely its own rows.
+
+**Settlement.** Pull-based, in PrivateERC20, amounts encrypted so balances do not disclose
+positions:
+
+```
+Atlas    +65 base / −6,565 quote
+Cygnus   −65 base / +6,565 quote
+Borealis  0 / 0   (unfilled, fully refunded)
+```
+
+Escrow in equals payout out, in both tokens, exactly. Each desk then claimed 0.0167 COTI in
+messaging rewards for the encrypted cells it stored.
+
+## 7. Disclosure surface
+
+| Public | Encrypted permanently |
 |---|---|
-| That an address placed an order, and when | Whether it was a buy or a sell |
-| The final price of each batch | The price they were willing to accept |
-| The total amount traded | The size of their order |
-| That settlement occurred | How much of it was filled |
-| The full source code of the market | **Anything at all about orders that didn't trade** |
+| That an address submitted an order, and when | Side (buy/sell) |
+| The batch clearing price | Limit price |
+| Total matched volume | Order size |
+| That settlement occurred | Individual fill |
+| The price grid and the full contract source | **Everything about unmatched orders** |
 
-## Why an auction, and not a normal exchange
+One additional bit leaks by construction: a rejected submission reveals that it was out of
+bounds (§4). Nothing else crosses the boundary.
 
-A normal exchange matches orders continuously — the instant two of them line up, they trade.
-That design rewards being fast, which is why so much money goes into shaving milliseconds,
-and it's the root of a whole category of value extraction where someone who sees your order
-first profits from it.
+Price discovery is a public good; the inputs that produce it are not. Sable separates the
+two.
 
-Sable instead collects orders over a window and settles them all together at **one shared
-price**. Everyone who trades in a batch gets the same price. Nobody wins by being a
-microsecond earlier.
+## 8. Engineering constraints
 
-This isn't a novel invention, and that's a feature — it's the design behind the closing
-auction that sets official prices on major stock exchanges every day, and it has a
-well-developed academic literature behind it. Sable's contribution is that the mechanism has
-never before been run on orders nobody can read.
+### Obliviousness, and an inverted primitive
 
-A pleasant side effect: because everyone settles at the same price, there's little to gain
-from lying about what you'd pay. Bidding your honest limit is the sensible strategy. The
-mechanism does the work that would otherwise require game-playing.
-
-## The hard parts
-
-*This section is for readers who want the engineering. Skip freely.*
-
-### You cannot ask a question about encrypted data
-
-Normal code branches: *if the price is above 100, do this.* Sable cannot. The computer
-genuinely does not know whether the price is above 100 — that's the whole point.
-
-So every decision has to be restructured into arithmetic that produces the right answer
-without anyone knowing which way it went. Instead of choosing between two paths, you compute
-*both* and blend them using a selector that is itself encrypted. Every condition in the
-market — is this a buy, is this price high enough, did this order participate — works this
-way.
-
-An early consequence: the one operation everything depends on, the encrypted "pick A or B",
-turned out to behave **backwards** from every convention. `pick(condition, A, B)` returns
-*B* when the condition is true. This is not documented anywhere and is invisible from the
-source code, because the operation is performed by the network rather than by the program.
-
-Get it backwards and the market silently selects exactly the orders that should *not*
-participate, produces a plausible-looking wrong price, and raises no error — because every
-value involved is encrypted, so there is nothing to inspect. Our first version had this bug.
-
-What caught it was a decision made before any code was measured: we built a small market by
-hand, worked out on paper what the correct answer had to be, and refused to trust the system
-until it reproduced that answer exactly. **On encrypted computation, a test whose answer you
-know in advance is worth more than any amount of code review.** You cannot debug what you
-cannot see.
-
-### A rounding error that would have drained the market
-
-Sometimes more people want to buy than sell. The extra demand has to be rationed, so each
-buyer gets a share proportional to their order.
-
-The obvious way to do this is subtly, dangerously wrong. Give each buyer
-`their size × amount traded ÷ total demand`, rounded down, and the two sides of the market
-stop matching: buyers collectively receive slightly more than sellers collectively delivered.
-The market would be paying out more than it took in — on every batch where rationing
-happened, forever.
-
-Concretely: 7 units of demand meeting 10 of supply, with sellers at 5 and 5, gives buyers 7
-units while taking only 6 from sellers. One unit short. Every time.
-
-The fix rounds the *running total* rather than each share:
+Every conditional becomes `mux`. The consequence is that the correctness of the entire
+kernel rests on one primitive — and that primitive behaves contrary to convention:
 
 ```
-share for order i = round(total up to and including i) − round(total up to i−1)
+MpcCore.mux(bit, a, b) == bit ? b : a
 ```
 
-Written this way the roundings cancel out along the chain, and the shares add up to exactly
-the right amount on both sides — always, with no reconciliation step and no leftovers. The
-books balance because of the formula, not because something checks them afterwards.
+The arguments are effectively transposed relative to every ternary in general use. This is
+undocumented, and it is invisible from the Solidity source because the operation delegates
+to a precompile.
 
-Verified on a deliberately lopsided market: 85 units traded, buyers rationed to 85% of what
-they asked for, and both sides summing to exactly 85. Collateral in equalled payout out, to
-the unit, in both currencies.
+The failure mode is the dangerous kind. Inverted, the kernel accumulates exactly the orders
+that should not participate, produces a well-formed and plausible clearing price, and raises
+no error — because every value involved is encrypted, so there is nothing to inspect, log,
+or assert on. Our first kernel had this bug.
 
-### Encrypted maths is cheap. Encrypted doors are expensive.
+What caught it was a methodological decision made before any code was measured: construct a
+small book by hand, derive the correct clearing price and allocation on paper, and withhold
+trust from the implementation until it reproduces that answer exactly. **On encrypted
+computation, a test whose answer you know in advance dominates any amount of code review.**
+The finding generalised into `reference.ts` (§13) and is recorded as a hazard note in the
+contract header, since it will silently break anyone else building on the same primitive.
 
-Blockchains charge for computation, so we measured the cost of every individual operation
-before designing anything. The result inverted our assumptions:
+### Cost is concentrated at the domain boundary, not in the arithmetic
 
-| Operation | Cost |
+Every operation was measured differentially before the design was fixed. The result inverted
+our priors:
+
+| Operation | Gas |
 |---|---|
-| Compare two encrypted numbers | 9,917 |
-| Add, blend, or take the minimum | ~13,000 |
-| Multiply, divide | ~34,000 |
-| **Move a value into or out of the encrypted domain** | **~48,000** |
+| Compare two encrypted values | 9,917 |
+| Add / mux / min | ~13,000 |
+| Multiply / divide | ~34,000 |
+| **`onBoard` / `offBoard` / `validateCiphertext`** | **~48,000** |
 
-Doing arithmetic on secrets is nearly free. *Handling* them — bringing a stored secret in to
-work on it, or sealing a result back up — costs four times as much as computing with it.
+Garbled arithmetic is close to free. Crossing the boundary between storage and computation
+costs roughly 4× a compute op. The design rule follows directly: **minimise boundary
+crossings, compute freely.** Garbled handles remain valid for the whole transaction, so an
+order onboarded once can be reused across every phase of clearing.
 
-That single table drove the design. Restructuring the market so each order is unsealed once
-and reused throughout, rather than unsealed each time it's needed, made it roughly 2.4× less
-expensive. A later pass found the same saving again in the settlement stage, cutting its cost
-by 37%. Both improvements were *predicted from the table and then confirmed by measurement* —
-the numbers matched to within 0.2%.
+Restructuring the kernel to onboard each order once rather than per use made it ~2.4×
+cheaper. A later pass found the same saving in settlement, cutting it 37%. Both were
+*predicted from the table and then confirmed by measurement*, agreeing to within 0.2% —
+which is the useful result: the cost surface of this platform is predictable enough to design
+against analytically.
 
-The resulting cost model:
+The second-order consequence shapes the settlement architecture. A 256-bit PrivateERC20
+transfer costs ~1.2M gas against ~13k for a 64-bit garbled compute op. **The encrypted token
+transfers dominate the system, not the confidential matching engine.** Pull-based settlement
+is a direct response: clearing stays fixed-cost, and each desk pays for its own transfer.
+
+## 9. Cost model and capacity
+
+Least-squares fit over the measured clearing curve:
 
 ```
-cost(orders, price levels) = 132,064 + 164,081·orders + 103,275·orders·levels + 52,278·levels
+gas(orders, levels) = 132,064 + 164,081·orders + 103,275·orders·levels + 52,278·levels
 ```
 
-It predicts real measurements to within 0.6%, which is what lets us size the market from
-arithmetic instead of guesswork. A settled batch of six orders across twelve price levels
-measured 13,130,009 — about 11% of what a single block can hold. The model puts the ceiling
-near 48 orders at that number of price levels.
+Residual against real measurements: 0.6%. The bilinear term is the kernel proper — one pass
+over each order at each price level — and its coefficient is the boundary-crossing rule of §8
+made visible in a regression.
 
-### An escape hatch, because holding other people's money demands one
+Measured, on testnet:
 
-Settlement is the most expensive operation in the system. If it ever became impossible to
-perform, the collateral inside that batch would be trapped — and, because of how the market
-advances from one batch to the next, no future batch could ever open either. One stuck batch
-would end the market permanently.
-
-So there is a way out: after a generous delay, **anyone** can abandon an unsettled batch and
-return every participant's collateral untouched. It works in pieces, so no batch can ever be
-too large to unwind — an escape hatch that could fail the same way as the thing it rescues
-would not be an escape hatch.
-
-Tested end to end: refused while the market was still open, refused again before the delay
-had passed, then unwound in two chunks called by two different people, with all three
-participants refunded to a difference of exactly zero, and the market accepting new orders
-immediately afterwards.
-
-## Why this couldn't exist before
-
-You may have heard of zero-knowledge proofs, the cryptography behind most privacy work in
-this space. They're remarkable, and they solve a different problem: proving something about
-*your own* data without revealing it.
-
-An auction needs something strictly harder. The clearing price is a function of *everyone's*
-private orders at once. No single participant can compute it — they'd need everyone else's
-secrets. The very party you'd normally trust to compute it is the party who must not see it.
-
-That requires computing over data belonging to several mutually distrustful parties. It's a
-different branch of cryptography, and until it became fast enough to run inside a
-blockchain, a market like this was a thought experiment.
-
-That's the sense in which Sable isn't "a private version of an existing product." It's a
-mechanism that had no implementation, because the mathematics to run it honestly didn't
-exist in usable form.
-
-## What it unlocks
-
-The immediate use is the one we built: institutions and automated traders moving size without
-paying the cost of being seen.
-
-The interesting part is what stops being a compromise once confidential computation is
-available to a market:
-
-**Sealed-bid auctions of every kind.** Procurement, spectrum, art, carbon credits — anywhere
-bidders currently shade their offers because they fear revealing their true valuation.
-
-**Markets between AI agents.** Software agents are starting to hold budgets and transact
-autonomously. An agent's strategy *is* its value, and on a transparent ledger every action it
-takes publishes that strategy. Confidentiality isn't a feature for agent-to-agent commerce;
-it's a precondition. Sable's three desks are a working instance of it: they negotiate,
-decide, trade and settle with no human in the loop and no strategy disclosed.
-
-**Price discovery without disclosure.** Sable produces a public, usable price out of inputs
-that stay private. That combination — a public good built from protected data — generalises
-well beyond trading.
-
-## Proof, not promises
-
-Everything described here runs on COTI's test network today, and every claim above is checked
-by an automated test rather than asserted.
-
-The tests are unusual in one way worth mentioning. Because encrypted computation cannot be
-inspected while it runs, we wrote an **independent second implementation** of the market's
-logic in plain, readable code — one that operates on ordinary visible numbers. The real
-encrypted market is checked against that reference on every run. When they disagree,
-something is wrong; and unlike reading the code, this catches errors that produce believable
-but incorrect answers.
-
-Two complete scenarios are verified end to end on every test run:
-
-| | Balanced market | Lopsided market |
+| Action | Gas | Share of one 120M block |
 |---|---|---|
-| Price found | 101 | 101 |
-| Amount traded | 65 | 85 |
+| `submitOrder` | ~2.8M | 2% |
+| Six encrypted IOIs | 3.1M | 3% |
+| `clear`, 6 orders × 12 levels | 13.13M | 11% |
+| `claim` | 1.4M – 4.0M | 1–3% |
+| `rescue` | ~0.5M per order | <1% |
+
+Against the 120M block gas limit, **the model** places the ceiling near 48 orders at 12
+price levels. The model, not a measurement: the largest configuration we have cleared and
+measured on chain is the 6×12 batch above. Capacity beyond that is an extrapolation from a
+fit with a 0.6% residual, and is labelled as such wherever it appears.
+
+Both terms of the model are actionable in the same direction. Fewer price levels is the
+cheaper axis — the grid is public and can be tightened around a reference price without
+disclosing anything — and the linear order term is what makes batching, rather than
+continuous matching, the right structure for this platform.
+
+## 10. Failure containment
+
+Clearing is the most expensive operation in the system, and `currentBatch` only advances
+inside it. A batch that could not be cleared would trap every escrow it holds *and* prevent
+any future batch from opening. One stuck batch would terminate the market permanently.
+
+`rescue(count)` is the containment. After a delay bounded below by the commit window, **any**
+address may abandon an unsettled batch and release every escrow untouched. It is chunked, so
+no batch can be too large to unwind — an escape hatch that could fail in the same way as the
+operation it rescues is not an escape hatch. On completion it marks the batch settled with
+price and volume zero and advances `currentBatch`, lifting the freeze.
+
+Exercised end to end in `scripts/test-rescue.ts`, against a book that would have crossed:
+
+- rejected while the commit window was open;
+- rejected again after the window but before the rescue delay;
+- unwound in two chunks called by two different addresses, demonstrating permissionlessness;
+- all three participants refunded to a delta of exactly zero in both tokens;
+- a settled batch cannot be rescued twice;
+- a new order accepted immediately afterwards, proving the freeze is lifted.
+
+The delay is generous by design. A premature rescue cancels a batch that could have cleared,
+which makes the parameter a griefing surface rather than a theft one — the trade-off is
+stated in the test's header so it is not silently re-tuned.
+
+## 11. Why this requires MPC and not zero-knowledge proofs
+
+Most confidentiality work in this space uses zero-knowledge proofs, which solve an adjacent
+but strictly easier problem: proving a statement about *your own* private data.
+
+A clearing price is a function of *everyone's* private orders jointly. No participant can
+compute it — doing so requires every other participant's secrets. The party you would
+normally delegate the computation to is precisely the party that must not learn the inputs.
+A ZK proof can attest that a correct clearing was performed; it cannot produce one without
+someone first holding the whole book in clear.
+
+That requires computation over data held by mutually distrusting parties, which is secure
+multi-party computation, a different primitive with a different cost profile. Until MPC
+became fast enough to run inside EVM execution, this mechanism had no implementation path.
+
+This is the sense in which Sable is not a private version of an existing product. It is a
+mechanism whose implementation was blocked on the underlying cryptography rather than on
+engineering effort.
+
+## 12. Applications
+
+The immediate use is the one built here: institutions and autonomous agents executing size
+without paying the cost of being observed.
+
+What generalises is the primitive underneath — a mechanism whose inputs are private to their
+owners and whose output is a public good.
+
+**Sealed-bid auctions.** Procurement, spectrum, carbon credits, art. Anywhere bidders
+currently shade because revealing a true valuation is costly, and where the auctioneer is
+today a trusted party by necessity rather than by design.
+
+**Agent-to-agent markets.** An autonomous agent's strategy is its economic value, and on a
+transparent ledger every action it takes publishes that strategy incrementally.
+Confidentiality is not a feature of agent commerce, it is a precondition for it. Sable's
+three desks are a working instance: they negotiate, size, commit, clear and settle with no
+human in the loop and no mandate disclosed.
+
+**Price discovery without disclosure.** A public, usable reference price computed from
+inputs that remain private generalises well past trading — to any setting where an aggregate
+is valuable and the constituents are sensitive.
+
+## 13. Verification
+
+Encrypted computation cannot be inspected while it runs. Assertions on intermediate values
+are unavailable, tracing reveals nothing, and the failure mode of interest is a plausible
+wrong answer rather than a revert. The methodology follows from that.
+
+**An independent second implementation.** `scripts/agents/reference.ts` implements the same
+mechanism in plaintext TypeScript, including the strict `>` in the argmax so tie-breaking
+matches exactly. The encrypted market is checked against it on every run. Expected values
+are *derived* rather than hardcoded, so the oracle stays correct when parameters change —
+which is what allowed the pro-rata fix to be validated on a lopsided book rather than only
+on the balanced one it was designed against.
+
+**Invariants asserted on chain, every run.** Fills sum to the matched volume on both sides;
+escrow equals payout in both tokens; no order is overfilled; a desk attempting to decrypt
+another's fill receives noise.
+
+Two complete scenarios, end to end:
+
+| | Balanced book | Lopsided book |
+|---|---|---|
+| Clearing price | 101 | 101 |
+| Matched volume | 65 | 85 |
 | Individual fills | all six exact | all six exact, rationing applied |
-| Books balanced | both sides exactly | both currencies exactly |
-| Money movements | exact for all three | exact for all three |
-| Confidentiality | each sees only their own | each sees only their own |
+| Conservation | both sides exact | both tokens exact |
+| Settlement deltas | exact for all three desks | exact for all three desks |
+| Confidentiality | each key reads only its own rows | each key reads only its own rows |
 
-Measured costs, for the technically inclined:
+One methodological note worth recording, since it recurred. Two frontend defects — reading
+the empty post-cross batch, and deriving the reward epoch as `currentEpoch − 1` — were found
+by running the system, not by reading it. Both were in code that reviewed as obviously
+correct. On this platform, execution is the only reliable oracle.
 
-| Action | Cost | As a share of one block |
-|---|---|---|
-| Place a sealed order | ~2.8M | 2% |
-| Six encrypted negotiation messages | 3.1M | 3% |
-| Settle a batch of six orders | 13.1M | 11% |
-| Collect what you're owed | 1.4M – 4.0M | 1–3% |
-| Unwind an abandoned batch | ~0.5M per order | under 1% |
+## 14. Running it
 
-## Try it yourself
-
-Everything is open source and runs against a public test network. No real money is involved
-at any point.
+Testnet only, no real value at risk at any point.
 
 ```bash
 npm install
-npm run check          # the market's logic, checked offline — no network, no cost
-
-npm run wallet         # creates a test account, then fund it free at faucet.coti.io
-
-STAGE=setup   npm run agents   # deploy a market and three desks
-STAGE=rfq     npm run agents   # the desks negotiate, encrypted
-STAGE=submit  npm run agents   # they decide and place sealed orders
-STAGE=clear   npm run agents   # the market finds the price, blind
-STAGE=claim   npm run agents   # money moves, confidentiality verified
-STAGE=rewards npm run agents   # the desks collect their messaging rewards
+npm run check                  # mechanism + reference engine, offline, no gas
+npx hardhat compile
+npm run wallet                 # fund the printed address free at faucet.coti.io
 ```
 
-And a terminal you can watch it through:
+The agent run is staged because the commit window and the reward epoch are wall-clock
+deadlines, so each stage is separately resumable:
 
 ```bash
+STAGE=setup   npm run agents   # tokens, mint, RFQ channel, the cross, approvals
+STAGE=rfq     npm run agents   # encrypted indications of interest
+STAGE=submit  npm run agents   # desks read inboxes, size, seal orders
+STAGE=clear   npm run agents   # waits out the window, clears, verifies vs reference
+STAGE=claim   npm run agents   # settles, checks conservation, privacy, capital saved
+STAGE=rewards npm run agents   # claims messaging rewards for the finished epoch
+```
+
+`npm run e2e` exercises the contract directly without the agent layer.
+
+The read-only terminal:
+
+```bash
+npm run frontend:config        # writes frontend/.env.local (addresses + desk keys)
 cd frontend && npm install && npm run dev
 ```
 
-It opens showing the complete order book — and every value in it as a solid block, because
-that is genuinely what's stored. Unlock one desk's key and that desk's rows resolve into
-numbers while all the others stay unreadable. That's not the interface being coy. It's the
-market.
+It opens on the complete order book with every field rendered as a solid block, because that
+is what is actually stored. Unlocking one desk's key resolves that desk's rows into numbers
+while every other row stays opaque. The interface is not withholding anything — it is
+displaying the state faithfully.
 
-## What's in the repository
+Keys live in `.env` and `frontend/.env.local`, both gitignored. Testnet keys only.
+
+## 15. Repository
 
 ```
-contracts/SableCross.sol      the market itself: orders, collateral, pricing, settlement
-contracts/GasSpike.sol        the measurement rig behind every number in this document
+contracts/SableCross.sol         the market: batches, escrow, clearing, allocation, claim
+contracts/GasSpike.sol           the kernel instrumented for measurement
+contracts/test/TestToken.sol     PrivateERC20 with an open mint, for testnet runs
+contracts/test/DeskMessaging.sol deployable PrivateMessaging — the RFQ channel
 
-scripts/agents/               the three desks: private instructions, decisions, behaviour
-scripts/agents/reference.ts   the independent second implementation used to check the first
-scripts/run-agents.ts         a complete run, end to end
-scripts/test-rescue.ts        the escape hatch, exercised
-scripts/stress-max-orders.ts  the market at its own capacity limit
+scripts/agents/desks.ts          the three private mandates and the market grid
+scripts/agents/strategy.ts       deterministic decision layer, pure and testable
+scripts/agents/reference.ts      plaintext clearing engine — the oracle for the contract
+scripts/agents/desk.ts           a desk's on-chain behaviour: RFQ, submit, claim
+scripts/run-agents.ts            the full agent run
+scripts/cross-e2e.ts             three-trader contract test with assertions
+scripts/test-rescue.ts           the escape hatch, exercised end to end
+scripts/stress-max-orders.ts     the market at its configured capacity
+scripts/spike-gas.ts             gas curve + correctness harness
 
-frontend/                     the terminal — a public window onto a sealed book
+frontend/                        read-only terminal — the sealed book, live
 
-SPIKE.md                      how every cost in this document was measured
-README.md                     the technical entry point
+SPIKE.md                         how every gas figure here was measured
+README.md                        technical entry point
 ```
 
 ---
 
-*Sable was built for the [COTI Vibe Code Challenge — Web 4 Agent Edition](https://stay.coti.io/vibe-coding/).
-It runs on COTI's public test network. MIT licensed.*
+*Built for the [COTI Vibe Code Challenge — Web 4 Agent Edition](https://stay.coti.io/vibe-coding/).
+Runs on COTI's public testnet (chain 7082400). MIT licensed.*

@@ -78,7 +78,7 @@ export function DeskKeys({
                 >
                   <span aria-hidden>{on ? "◉" : "○"}</span>
                   <span>{k.name}</span>
-                  <span className="text-[12px] text-[var(--dim)]">{k.address.slice(0, 8)}…</span>
+                  <span className="mono text-[12px] text-[var(--dim)]">{k.address.slice(0, 8)}…</span>
                 </button>
               )
             })
@@ -87,7 +87,10 @@ export function DeskKeys({
 
         <div className="flex items-center gap-3 text-[13px]">
           <span className="text-[var(--dim)]">
-            {active.length}/{keys.length} unlocked
+            <span className="mono">
+              {active.length}/{keys.length}
+            </span>{" "}
+            unlocked
           </span>
           <button onClick={() => setOpen(!open)} className="!border-0 !p-0 underline">
             {open ? "cancel" : "add a key"}

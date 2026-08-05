@@ -42,7 +42,7 @@ function Contract({ label, address }: { label: string; address: string }) {
   return (
     <span className="whitespace-nowrap">
       <span className="text-[var(--dim)]">{label} </span>
-      <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noreferrer">
+      <a className="mono" href={`${EXPLORER}/address/${address}`} target="_blank" rel="noreferrer">
         {address.slice(0, 8)}…
       </a>
     </span>
@@ -54,9 +54,9 @@ function Field({ label, value, note }: { label: string; value: string; note?: st
   return (
     <div className="flex flex-col gap-1">
       <span className="text-[12px] text-[var(--dim)]">{label}</span>
-      <span className="text-[15px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <span className="mono text-[15px]" style={{ fontVariantNumeric: "tabular-nums" }}>
         {value}
-        {note ? <span className="ml-2 text-[13px] text-[var(--dim)]">{note}</span> : null}
+        {note ? <span className="sans ml-2 text-[13px] text-[var(--dim)]">{note}</span> : null}
       </span>
     </div>
   )
@@ -102,7 +102,7 @@ export function Header({
       >
         <div className="flex items-center gap-3.5">
           <Mark />
-          <h1 className="text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
+          <h1 className="mono text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
           <span className="ml-1 hidden border-l border-[var(--line)] pl-4 text-[13px] text-[var(--dim)] md:inline">
             the confidential cross
           </span>
@@ -121,7 +121,7 @@ export function Header({
             </span>
             COTI testnet
             <span className="text-[var(--line-hi)]">·</span>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>{blockNumber ?? "…"}</span>
+            <span className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{blockNumber ?? "…"}</span>
           </span>
 
           <span className="flex items-center gap-3 whitespace-nowrap">
@@ -146,7 +146,7 @@ export function Header({
             <div className="flex flex-col gap-1.5">
               <span className="panel-label">Clearing price</span>
               <span
-                className="text-[44px] leading-none sm:text-[52px]"
+                className="mono text-[44px] leading-none sm:text-[52px]"
                 style={{ color: cleared ? "var(--accent)" : "var(--seal)", fontVariantNumeric: "tabular-nums" }}
               >
                 {priceText}
@@ -155,7 +155,7 @@ export function Header({
             <div className="flex flex-col gap-1.5">
               <span className="panel-label">Matched volume</span>
               <span
-                className="text-[44px] leading-none sm:text-[52px]"
+                className="mono text-[44px] leading-none sm:text-[52px]"
                 style={{ color: cleared ? "var(--ink)" : "var(--seal)", fontVariantNumeric: "tabular-nums" }}
               >
                 {volumeText}

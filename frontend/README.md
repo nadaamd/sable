@@ -100,6 +100,26 @@ visibility by keys held:
   ok   Cygnus    reads 3/6 (owns 3)
 ```
 
+## Typography
+
+Two families, split by what the text *is*, not by where it sits.
+
+**Prose, labels and chrome are sans.** A monospace was carrying the panel footers, and uniform
+advance widths remove the word shapes a reader scans by; the cost landed hardest on exactly the
+text carrying the argument.
+
+**Data is monospaced.** Limits, sizes and fills have to align down a column, ciphertexts have to
+be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
+because the wide tracking on them is the identity.
+
+Both are the **system stacks**, deliberately, over Inter or Geist: those are named tells in the
+slop catalogue below, the native UI face is more legible at 13px on the machine rendering it, and
+there is no network request and no layout shift. Tailwind picks `--font-sans` and `--font-mono`
+up as theme tokens, so its `font-sans` / `font-mono` utilities resolve to the same stacks.
+
+Use `.mono` and `.sans` to cross between them. `td` is monospaced by rule and `th` is not, since
+a header is a label and a cell is a value.
+
 ## Slop audit
 
 Checked against the catalogue at <https://impeccable.style/slop/>. Six patterns were present

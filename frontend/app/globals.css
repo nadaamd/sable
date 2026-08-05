@@ -39,6 +39,24 @@
   /* Minimum height of the sticky identity bar, so it does not shrink to its content and let
      the page jitter as the block number changes width. */
   --header-h: 4.5rem;
+
+  /*
+   * Two families, split by what the text IS.
+   *
+   * Prose in a monospace was the biggest drag on legibility here: uniform advance widths
+   * remove the word shapes a reader scans by, and that cost landed hardest on exactly the
+   * panel footers carrying the argument. So prose, labels and chrome are sans.
+   *
+   * Data stays monospaced, and not for flavour: a column of limits, sizes and fills has to
+   * align, and a ciphertext has to be inspectable character by character.
+   *
+   * The system stacks deliberately, over Inter or Geist. Those are named tells in the slop
+   * catalogue, and the native UI face is more legible at 13px on the machine rendering it,
+   * with no network request and no layout shift.
+   */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * {
@@ -49,15 +67,30 @@ html,
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   /* The page itself must never scroll sideways; wide content scrolls inside .scroll-x. */
   overflow-x: hidden;
 }
 
+/* Anything that is a value rather than a sentence, and the way back out. */
+.mono {
+  font-family: var(--font-mono);
+}
+
+.sans {
+  font-family: var(--font-sans);
+}
+
+code,
+input {
+  font-family: var(--font-mono);
+}
+
 /* A sealed value: present on chain, addressable, and unreadable. */
 .sealed {
+  font-family: var(--font-mono);
   color: var(--seal);
   letter-spacing: 1px;
   user-select: none;
@@ -68,11 +101,18 @@ body {
   border: 1px solid var(--line);
 }
 
-/* Prose stops at a readable measure. Panel footers ran the full 1400px, about 180 characters. */
+/*
+ * Prose stops at a readable measure. Panel footers once ran the full 1400px, about 180
+ * characters.
+ *
+ * 66ch, not the 78ch this carried in monospace: `ch` is the width of "0", and in a
+ * proportional face most letters are narrower than that, so the same ch value fits noticeably
+ * more real characters. 66ch lands near 75 here.
+ */
 .prose {
-  max-width: 78ch;
-  font-size: 13px;
-  line-height: 1.65;
+  max-width: 66ch;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--dim);
 }
 
@@ -125,8 +165,10 @@ td {
   white-space: nowrap;
 }
 
-/* Digits must line up in a book, or scanning a column becomes reading it. */
+/* Cells are values: monospaced and tabular, so scanning a column stays scanning. Headers are
+   labels, so they keep the sans face. */
 td {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

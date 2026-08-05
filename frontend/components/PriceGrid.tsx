@@ -17,7 +17,8 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
       <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
         <span className="panel-label">Price grid</span>
         <span className="text-[13px] text-[var(--dim)]">
-          {ticks.length} ticks, {ticks[0]} to {ticks[ticks.length - 1]}
+          {ticks.length} ticks, <span className="mono">{ticks[0]}</span> to{" "}
+          <span className="mono">{ticks[ticks.length - 1]}</span>
         </span>
       </div>
 
@@ -27,7 +28,7 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
           return (
             <span
               key={t}
-              className="px-2 py-1 text-[12px]"
+              className="mono px-2 py-1 text-[12px]"
               style={{
                 border: `1px solid ${isClearing ? "var(--accent)" : "var(--line)"}`,
                 color: isClearing ? "var(--accent)" : "var(--dim)",

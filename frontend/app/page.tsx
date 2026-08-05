@@ -124,7 +124,7 @@ export default function Page() {
           <button
             key={b}
             onClick={() => setViewBatch(b === market.currentBatch ? undefined : b)}
-            className="shrink-0 !px-2 !py-1"
+            className="mono shrink-0 !px-2 !py-1"
             style={{
               borderColor: b === market.batch.id ? "var(--accent)" : "var(--line)",
               color: b === market.batch.id ? "var(--accent)" : "var(--dim)",
@@ -251,7 +251,7 @@ function Line({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-4 py-[3px]">
       <span className="text-[var(--dim)]">{k}</span>
-      <span className="text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <span className="mono text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
         {v}
       </span>
     </div>

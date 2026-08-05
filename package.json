@@ -11,6 +11,7 @@
     "agents": "hardhat run scripts/run-agents.ts --network coti-testnet",
     "check": "ts-node scripts/agents/check-offline.ts",
     "frontend:config": "ts-node scripts/frontend-config.ts",
+    "stress": "hardhat run scripts/stress-max-orders.ts --network coti-testnet",
     "wallet": "hardhat run scripts/new-wallet.ts --network coti-testnet"
   },
   "devDependencies": {

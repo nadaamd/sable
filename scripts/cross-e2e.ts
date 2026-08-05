@@ -37,6 +37,8 @@ const STATE = path.join(__dirname, "..", "cross-e2e-state.json")
 
 const TICKS = [95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106]
 const COMMIT_WINDOW = 150 // seconds
+const RESCUE_DELAY = 300 // must be >= COMMIT_WINDOW; see SableCross.rescueDelay
+const MAX_ORDER_SIZE = 100_000_000 // MAX_ORDERS * this must stay inside 32 bits
 const TRADERS = 3
 const MIN_GAS_BALANCE = 10n ** 17n // 0.1 COTI is plenty at ~0.005 gwei
 const FUND_AMOUNT = 5n * 10n ** 17n // 0.5 COTI
@@ -186,7 +188,7 @@ async function stageSetup(traders: Wallet[], state: State) {
 
   console.log(`\n[setup] deploy SableCross (K=${TICKS.length} ticks, ${COMMIT_WINDOW}s window)`)
   const Cross = await hre.ethers.getContractFactory("SableCross")
-  const cross = await Cross.connect(traders[0]).deploy(state.base!, state.quote!, TICKS, COMMIT_WINDOW, {
+  const cross = await Cross.connect(traders[0]).deploy(state.base!, state.quote!, TICKS, COMMIT_WINDOW, RESCUE_DELAY, MAX_ORDER_SIZE, {
     gasLimit: 12_000_000,
   })
   await cross.waitForDeployment()

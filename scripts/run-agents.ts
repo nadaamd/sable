@@ -23,7 +23,7 @@ import path from "path"
 import type { Wallet } from "@coti-io/coti-ethers"
 import { setupWallets } from "./utils/traders"
 import { Desk } from "./agents/desk"
-import { COMMIT_WINDOW, MANDATES, MESSAGING_EPOCH, TICKS } from "./agents/desks"
+import { COMMIT_WINDOW, MANDATES, MAX_ORDER_SIZE, MESSAGING_EPOCH, RESCUE_DELAY, TICKS } from "./agents/desks"
 import { referenceClear, referenceLegs } from "./agents/reference"
 import { counterfactualEscrow, type PlannedOrder } from "./agents/strategy"
 
@@ -107,7 +107,7 @@ async function stageSetup(wallets: Wallet[], state: State) {
 
   console.log(`\n[setup] SableCross (K=${TICKS.length} ticks, ${COMMIT_WINDOW}s commit window)`)
   const Cross = await hre.ethers.getContractFactory("SableCross")
-  const cross = await Cross.connect(deployer).deploy(state.base!, state.quote!, TICKS, COMMIT_WINDOW, {
+  const cross = await Cross.connect(deployer).deploy(state.base!, state.quote!, TICKS, COMMIT_WINDOW, RESCUE_DELAY, MAX_ORDER_SIZE, {
     gasLimit: 12_000_000,
   })
   await cross.waitForDeployment()

@@ -89,6 +89,29 @@ contract SableCross {
     uint256 public immutable commitWindow;
 
     /**
+     * How long after the commit window closes before a batch may be abandoned and refunded.
+     *
+     * Set this generously on a real market. A premature rescue is not profitable for anyone,
+     * but it does cancel a batch that could have crossed, so a short delay is a griefing
+     * vector. The constructor enforces at least one further commit window.
+     */
+    uint256 public immutable rescueDelay;
+
+    /**
+     * Largest size a single order may carry, in base units.
+     *
+     * This is not a policy choice, it is an arithmetic one. Allocation computes
+     * `cum * matched`, and both factors are bounded by a side's total interest T, so the
+     * product is bounded by T². With T <= MAX_ORDERS * maxOrderSize, keeping
+     * MAX_ORDERS * maxOrderSize within 32 bits keeps T² inside 64 bits — exactly, since
+     * (2^32 - 1)² < 2^64. The constructor enforces it.
+     *
+     * A market needing larger sizes needs the allocation arithmetic widened to gtUint128;
+     * silently wrapping would corrupt every fill in the batch without raising anything.
+     */
+    uint64 public immutable maxOrderSize;
+
+    /**
      * Hard cap on orders per batch, so clearing always fits in one transaction.
      *
      * Measured on COTI testnet: clearing plus allocation costs roughly
@@ -106,6 +129,9 @@ contract SableCross {
     mapping(uint256 => Order[]) private _orders;
     mapping(uint256 => mapping(address => uint256[])) private _traderOrders;
 
+    /// How many orders of an abandoned batch have had their escrow released so far.
+    mapping(uint256 => uint256) public rescueProgress;
+
     // ------------------------------------------------------------------ events
 
     /// Deliberately carries no amounts — only that someone joined the batch.
@@ -113,6 +139,7 @@ contract SableCross {
     event BatchOpened(uint256 indexed batchId, uint256 commitDeadline);
     event BatchCleared(uint256 indexed batchId, uint64 clearingPrice, uint64 matchedVolume, uint32 orderCount);
     event Claimed(uint256 indexed batchId, address indexed trader, uint256 orderCount);
+    event BatchRescued(uint256 indexed batchId, uint256 ordersReleased, bool complete);
 
     // ------------------------------------------------------------------ errors
 
@@ -124,20 +151,46 @@ contract SableCross {
     error NothingToClaim();
     error TicksNotAscending();
     error EmptyGrid();
+    error RescueTooEarly();
+    error NothingToRescue();
+    error RescueDelayTooShort();
+    error SizeCapTooHigh();
+    error OrderOutsideBounds();
 
     // ------------------------------------------------------------- constructor
 
-    constructor(IPrivateERC20 baseToken_, IPrivateERC20 quoteToken_, uint64[] memory ticks_, uint256 commitWindow_) {
+    constructor(
+        IPrivateERC20 baseToken_,
+        IPrivateERC20 quoteToken_,
+        uint64[] memory ticks_,
+        uint256 commitWindow_,
+        uint256 rescueDelay_,
+        uint64 maxOrderSize_
+    ) {
         if (ticks_.length == 0) revert EmptyGrid();
         // Strict ascent is what guarantees demand and supply cross exactly once, which is
         // what makes the argmax the true clearing price rather than a heuristic.
         for (uint256 i = 1; i < ticks_.length; i++) {
             if (ticks_[i] <= ticks_[i - 1]) revert TicksNotAscending();
         }
+        // A rescue cancels a batch, so it must never be reachable while a legitimate clear
+        // still could be.
+        if (rescueDelay_ < commitWindow_) revert RescueDelayTooShort();
+
+        uint64 topTick = ticks_[ticks_.length - 1];
+        // Allocation multiplies two quantities each bounded by a side's total interest, so
+        // keep MAX_ORDERS * maxOrderSize inside 32 bits: (2^32 - 1)^2 < 2^64.
+        if (uint256(MAX_ORDERS) * uint256(maxOrderSize_) > type(uint32).max) revert SizeCapTooHigh();
+        // Escrow and notional multiply a size by a price on the grid.
+        if (uint256(maxOrderSize_) * uint256(topTick) > type(uint64).max) revert SizeCapTooHigh();
+        if (maxOrderSize_ == 0) revert SizeCapTooHigh();
+
         baseToken = baseToken_;
         quoteToken = quoteToken_;
         ticks = ticks_;
         commitWindow = commitWindow_;
+        rescueDelay = rescueDelay_;
+        maxOrderSize = maxOrderSize_;
     }
 
     // --------------------------------------------------------------- submitting
@@ -165,6 +218,30 @@ contract SableCross {
         gtBool isBuy = MpcCore.validateCiphertext(isBuy_);
         gtUint64 limit = MpcCore.validateCiphertext(limit_);
         gtUint64 size = MpcCore.validateCiphertext(size_);
+
+        /*
+         * Bounds check. This is the one place the contract deliberately decrypts something:
+         * a single bit saying whether the order is admissible.
+         *
+         * It has to happen. Solidity cannot branch on an encrypted value, so without this
+         * an oversized order would silently wrap the allocation arithmetic and corrupt every
+         * fill in the batch — with no revert and no visible symptom, because the operands are
+         * encrypted. Clamping instead would leak nothing but would silently alter the
+         * trader's stated intent, which is worse than telling them their order was rejected.
+         *
+         * What leaks is exactly one bit, about admissibility rather than content, and the
+         * trader learns it from the revert anyway. COTI's own PrivateERC20 decrypts an
+         * allowance-sufficiency bit the same way.
+         *
+         * Bounding the limit to the grid costs nothing economically: a bid above the top tick
+         * behaves identically to one at the top tick, since the clearing price is always a
+         * grid point.
+         */
+        gtBool admissible = MpcCore.and(
+            MpcCore.le(size, maxOrderSize),
+            MpcCore.and(MpcCore.ge(limit, ticks[0]), MpcCore.le(limit, ticks[ticks.length - 1]))
+        );
+        if (!MpcCore.decrypt(admissible)) revert OrderOutsideBounds();
 
         // mux is inverted: mux(bit, a, b) == bit ? b : a.
         gtUint64 escrowQuote = MpcCore.mux(isBuy, uint64(0), MpcCore.mul(size, limit)); // buy ? size*limit : 0
@@ -422,6 +499,73 @@ contract SableCross {
             o.baseOut = MpcCore.offBoard(baseOut);
             o.quoteOut = MpcCore.offBoard(quoteOut);
         }
+    }
+
+    // ------------------------------------------------------------------ rescue
+
+    /**
+     * @notice Abandon a batch that cannot be cleared and give every escrow back.
+     *
+     * ## Why this exists
+     *
+     * Without it, one uncleanable batch bricks the whole market, permanently. `currentBatch`
+     * only advances inside `clear()`, and `claim()` requires a cleared batch — so if clearing
+     * ever becomes impossible (it is O(n·K) and could exceed the block gas limit, or revert
+     * for any unforeseen reason) then every escrow in that batch is locked forever AND no
+     * further batch can ever open. "Funds are stuck and the market is dead" is not an
+     * acceptable failure mode for a mechanism holding other people's money.
+     *
+     * ## Why it is chunked
+     *
+     * An escape hatch that can fail the same way as the thing it rescues is not an escape
+     * hatch. Rescue is O(n) rather than O(n·K) so it is already far cheaper than clearing,
+     * but `count` lets it be drained over several transactions regardless, so no batch size
+     * can trap it.
+     *
+     * Permissionless, like clearing: nobody should need an operator's cooperation to get
+     * their own escrow back.
+     */
+    function rescue(uint256 count) external {
+        uint256 b = currentBatch;
+        BatchMeta storage meta = batches[b];
+
+        // Only the live batch can be uncleared — clearing advances the counter — so this is
+        // the only batch that could ever be stuck.
+        if (meta.cleared) revert AlreadyCleared();
+        if (meta.commitDeadline == 0) revert NothingToRescue();
+        if (block.timestamp < meta.commitDeadline + rescueDelay) revert RescueTooEarly();
+
+        uint256 n = _orders[b].length;
+        uint256 from = rescueProgress[b];
+        if (from >= n) revert NothingToRescue();
+        uint256 to = from + count;
+        if (to > n) to = n;
+
+        for (uint256 i = from; i < to; i++) {
+            Order storage o = _orders[b][i];
+            gtBool isBuy = MpcCore.onBoard(o.isBuy);
+            gtUint64 limit = MpcCore.onBoard(o.limit);
+            gtUint64 size = MpcCore.onBoard(o.size);
+
+            // Full escrow back, nothing matched. Inverted mux: mux(bit, a, b) == bit ? b : a.
+            o.baseOut = MpcCore.offBoard(MpcCore.mux(isBuy, size, uint64(0)));
+            o.quoteOut = MpcCore.offBoard(MpcCore.mux(isBuy, uint64(0), MpcCore.mul(size, limit)));
+            o.fill = MpcCore.offBoardToUser(MpcCore.setPublic64(uint64(0)), o.trader);
+        }
+
+        rescueProgress[b] = to;
+        bool complete = to == n;
+
+        if (complete) {
+            // Mark it settled with no cross, which unlocks `claim`, and advance the counter so
+            // the market lives again.
+            meta.cleared = true;
+            meta.clearingPrice = 0;
+            meta.matchedVolume = 0;
+            currentBatch = b + 1;
+        }
+
+        emit BatchRescued(b, to - from, complete);
     }
 
     function _tickIndex(uint64 p) private view returns (uint256) {

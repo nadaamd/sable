@@ -53,6 +53,22 @@ export const MANDATES: Mandate[] = [
 export const COMMIT_WINDOW = 150
 
 /**
+ * How long after the window closes before a stuck batch can be abandoned and refunded.
+ * Must be at least one commit window — a premature rescue cancels a batch that could still
+ * have cleared, so on a real market this should be far more generous than a test needs.
+ */
+export const RESCUE_DELAY = 300
+
+/**
+ * Largest order this market accepts, in base units.
+ *
+ * The ceiling is arithmetic, not policy: MAX_ORDERS * maxOrderSize must stay inside 32 bits
+ * so the allocation's `cum * matched` stays inside 64. With MAX_ORDERS = 32 that caps it at
+ * 134,217,728; 1e8 leaves room and is orders of magnitude above anything the desks trade.
+ */
+export const MAX_ORDER_SIZE = 100_000_000
+
+/**
  * Reward epoch length for the RFQ messaging channel. Kept short so a demo run actually
  * reaches a claimable epoch: COTI's PrivateMessaging only pays out an epoch once it has
  * ended, and it pays in proportion to the encrypted cells a desk stored. The protocol

@@ -16,8 +16,8 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
     <div className="panel">
       <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
         <span className="panel-label">Price grid</span>
-        <span className="text-[12px] text-[var(--dim)]">
-          {ticks.length} ticks · {ticks[0]}–{ticks[ticks.length - 1]}
+        <span className="text-[13px] text-[var(--dim)]">
+          {ticks.length} ticks, {ticks[0]} to {ticks[ticks.length - 1]}
         </span>
       </div>
 
@@ -42,10 +42,13 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
         })}
       </div>
 
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
-        Clearing is permissionless: once the window closes anyone may trigger it, so no operator
-        can stall a batch — and none can see inside one either. The price maximises matched volume
-        over this grid, computed entirely on encrypted orders.
+      <div className="border-t border-[var(--line)] px-3 py-2">
+        <p className="prose">
+          Clearing is permissionless. Once the commit window closes any address may trigger it, so
+          there is no operator who could stall a batch, and none who could read one. The price
+          chosen is the one that maximises matched volume over this grid, computed entirely on
+          encrypted orders.
+        </p>
       </div>
     </div>
   )

@@ -71,7 +71,7 @@ function Row({ order, cleared, flash }: { order: OrderRow; cleared: boolean; fla
       </td>
 
       {/* First to go on a narrow screen: it is corroboration, not information. */}
-      <td className="hidden text-[12px] text-[var(--dim)] md:table-cell">{fingerprint(order.ct.limit)}</td>
+      <td className="hidden text-[13px] text-[var(--dim)] md:table-cell">{fingerprint(order.ct.limit)}</td>
       <td className="text-[var(--dim)]">{order.claimed ? "settled" : cleared ? "unsettled" : ""}</td>
     </tr>
   )
@@ -115,7 +115,7 @@ export function Blotter({ batch }: { batch: BatchView }) {
           <span className="ml-3">batch {batch.id}</span>
         </div>
         {total > 0 && (
-          <div className="text-[12px] text-[var(--dim)]">
+          <div className="text-[13px] text-[var(--dim)]">
             <span className={readable > 0 ? "text-[var(--accent)]" : undefined}>
               {readable} of {total}
             </span>{" "}
@@ -126,7 +126,7 @@ export function Blotter({ batch }: { batch: BatchView }) {
 
       {total === 0 ? (
         <div className="px-3 py-8 text-center text-[var(--dim)]">
-          No orders in this batch yet. Run the desks and they appear here — sealed.
+          No orders in this batch yet. Run the desks and they appear here, sealed.
         </div>
       ) : (
         <div className="scroll-x">
@@ -152,10 +152,13 @@ export function Blotter({ batch }: { batch: BatchView }) {
         </div>
       )}
 
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
-        Every row is a public <code>view</code> call — anyone can read this table. Side, limit and
-        size are ciphertexts under their own desk&apos;s key, so they stay █ unless you hold that
-        key. Nothing here is hidden by this interface; it is unreadable on chain.
+      <div className="border-t border-[var(--line)] px-3 py-2">
+        <p className="prose">
+          Every row here comes from a public <code>view</code> call, so anyone can fetch this
+          table. Side, limit and size are ciphertexts encrypted under each desk&apos;s own key, so
+          they render as █ unless you hold that key. The interface is not withholding them; they
+          are unreadable on chain.
+        </p>
       </div>
     </div>
   )

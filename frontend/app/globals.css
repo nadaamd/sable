@@ -68,10 +68,18 @@ body {
   border: 1px solid var(--line);
 }
 
+/* Prose stops at a readable measure. Panel footers ran the full 1400px, about 180 characters. */
+.prose {
+  max-width: 78ch;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--dim);
+}
+
 .panel-label {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   color: var(--dim);
 }
 
@@ -198,23 +206,8 @@ a:hover {
   animation: reveal 900ms ease-out;
 }
 
-@keyframes tick {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.live-dot {
-  animation: tick 2s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .revealed,
-  .live-dot {
+  .revealed {
     animation: none;
   }
   button {

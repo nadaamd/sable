@@ -12,7 +12,7 @@ import {
 const PHASE_LABEL: Record<BatchView["phase"], string> = {
   idle: "awaiting first order",
   commit: "commit window open",
-  "awaiting-clear": "window closed",
+  "awaiting-clear": "window closed, clearing due",
   cleared: "cleared",
 }
 
@@ -49,50 +49,32 @@ function Contract({ label, address }: { label: string; address: string }) {
   )
 }
 
-/**
- * A headline number.
- *
- * `note` says whether the value is public or sealed, on every tile. The page's entire claim is
- * about which is which, so stating it beside each number costs one line and removes the need
- * to infer it.
- */
-function Stat({
-  label,
-  value,
-  note,
-  color = "var(--ink)",
-  small,
-}: {
-  label: string
-  value: string
-  note: string
-  color?: string
-  small?: boolean
-}) {
+/** A labelled value. Used for facts, not as a marketing metric tile. */
+function Field({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="bg-[var(--panel)] px-4 py-4">
-      <div className="panel-label">{label}</div>
-      <div
-        // 1.6x apart, not 2.2x: the headline pair must dominate without the row looking broken.
-        className={small ? "mt-1.5 text-[28px] sm:text-[32px]" : "mt-1.5 text-[44px] sm:text-[52px]"}
-        style={{ color, fontVariantNumeric: "tabular-nums", lineHeight: 1.05 }}
-      >
+    <div className="flex flex-col gap-1">
+      <span className="text-[12px] text-[var(--dim)]">{label}</span>
+      <span className="text-[15px]" style={{ fontVariantNumeric: "tabular-nums" }}>
         {value}
-      </div>
-      <div className="mt-2 text-[11px] text-[var(--dim)]">{note}</div>
+        {note ? <span className="ml-2 text-[13px] text-[var(--dim)]">{note}</span> : null}
+      </span>
     </div>
   )
 }
 
 /**
- * Identity bar, the claim, and the headline numbers.
+ * Identity bar, the claim, and the batch readout.
  *
  * The clearing price and the matched volume are the only two values this market ever makes
- * public — which is the whole point — and they used to sit in a side panel below the fold.
- * They are the page's headline, so they are in its header.
+ * public, so they belong at the top of the page rather than in a side panel.
+ *
+ * They are deliberately not presented as a row of four equal metric tiles with a caption on
+ * each. Two figures are the result; batch state and order count are context, and sit at the
+ * scale of context. The disclosure note is stated once for the whole readout instead of
+ * repeating the word "public" under each number.
  *
  * Returns a fragment so the bar is a direct child of the page's flex column, which is what
- * lets it stick over the whole document rather than its own parent.
+ * lets it stick over the whole document rather than over its own parent.
  */
 export function Header({
   batch,
@@ -107,16 +89,16 @@ export function Header({
 }) {
   const cleared = batch?.cleared ?? false
   const remaining = batch ? batch.commitDeadline - nowSec : 0
+  const priceText = !batch || !cleared ? "—" : batch.clearingPrice === 0 ? "no cross" : String(batch.clearingPrice)
+  const volumeText = !batch || !cleared ? "—" : String(batch.matchedVolume)
 
   return (
     <>
       <div
-        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[var(--line)] py-4"
-        style={{
-          background: "color-mix(in srgb, var(--bg) 90%, transparent)",
-          backdropFilter: "blur(8px)",
-          minHeight: "var(--header-h)",
-        }}
+        // Solid, not translucent: a blurred glass bar is decoration, and content sliding
+        // under a half-transparent header is harder to read than content that is covered.
+        className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-b border-[var(--line)] bg-[var(--bg)] py-4"
+        style={{ minHeight: "var(--header-h)" }}
       >
         <div className="flex items-center gap-3.5">
           <Mark />
@@ -126,7 +108,7 @@ export function Header({
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
           <span className="hidden items-center gap-1.5 md:flex">
             <Contract label="cross" address={CROSS_ADDRESS} />
             <span className="text-[var(--line-hi)]">·</span>
@@ -134,11 +116,7 @@ export function Header({
           </span>
 
           <span className="flex items-center gap-1.5 whitespace-nowrap text-[var(--dim)]">
-            <span
-              className={blockNumber ? "live-dot" : undefined}
-              style={{ color: blockNumber ? "var(--buy)" : "var(--seal)" }}
-              aria-hidden
-            >
+            <span style={{ color: blockNumber ? "var(--buy)" : "var(--seal)" }} aria-hidden>
               ●
             </span>
             COTI testnet
@@ -157,45 +135,59 @@ export function Header({
         </div>
       </div>
 
-      <p className="max-w-3xl text-[15px] leading-relaxed">
-        A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted orders.{" "}
-        <span className="text-[var(--dim)]">
-          The market publishes a price. No participant reveals their hand.
-        </span>
+      <p className="prose">
+        A sealed-bid, uniform-price batch auction. Orders arrive as ciphertext and the matching
+        engine computes a clearing price without decrypting any of them.
       </p>
 
-      <div className="panel grid grid-cols-2 gap-px bg-[var(--line)] md:grid-cols-4">
-        <Stat
-          label="Clearing price"
-          value={!batch ? "—" : cleared ? (batch.clearingPrice === 0 ? "no cross" : String(batch.clearingPrice)) : "—"}
-          note="public"
-          color={cleared ? "var(--accent)" : "var(--seal)"}
-        />
-        <Stat
-          label="Matched volume"
-          value={!batch ? "—" : cleared ? String(batch.matchedVolume) : "—"}
-          note="public"
-          color={cleared ? "var(--ink)" : "var(--seal)"}
-        />
-        <Stat
-          label="Batch"
-          value={batch ? `#${batch.id}` : "—"}
-          note={
-            batch
-              ? batch.phase === "commit"
-                ? `${PHASE_LABEL[batch.phase]} · ${countdown(remaining)}`
-                : PHASE_LABEL[batch.phase]
-              : "reading chain…"
-          }
-          color={cleared ? "var(--buy)" : "var(--accent)"}
-          small
-        />
-        <Stat
-          label="Orders"
-          value={batch && maxOrders ? `${batch.orderCount} / ${maxOrders}` : "—"}
-          note="side, limit, size — all sealed"
-          small
-        />
+      <div className="panel">
+        <div className="flex flex-wrap items-end gap-x-12 gap-y-6 px-4 py-4">
+          <div className="flex flex-wrap items-end gap-x-10 gap-y-6">
+            <div className="flex flex-col gap-1.5">
+              <span className="panel-label">Clearing price</span>
+              <span
+                className="text-[44px] leading-none sm:text-[52px]"
+                style={{ color: cleared ? "var(--accent)" : "var(--seal)", fontVariantNumeric: "tabular-nums" }}
+              >
+                {priceText}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="panel-label">Matched volume</span>
+              <span
+                className="text-[44px] leading-none sm:text-[52px]"
+                style={{ color: cleared ? "var(--ink)" : "var(--seal)", fontVariantNumeric: "tabular-nums" }}
+              >
+                {volumeText}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-10 gap-y-4 border-[var(--line)] sm:border-l sm:pl-10">
+            <Field
+              label="Batch"
+              value={batch ? `#${batch.id}` : "—"}
+              note={
+                batch
+                  ? batch.phase === "commit"
+                    ? `${PHASE_LABEL[batch.phase]}, ${countdown(remaining)}`
+                    : PHASE_LABEL[batch.phase]
+                  : "reading chain"
+              }
+            />
+            <Field
+              label="Orders"
+              value={batch && maxOrders ? `${batch.orderCount} of ${maxOrders}` : "—"}
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--line)] px-4 py-2">
+          <p className="prose">
+            Those two figures are the only values this batch makes public. Side, limit, size and
+            every individual fill stay encrypted on chain.
+          </p>
+        </div>
       </div>
     </>
   )

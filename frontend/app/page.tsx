@@ -119,7 +119,7 @@ export default function Page() {
 
   const batchPicker =
     market && batches.length > 1 ? (
-      <div className="scroll-x flex items-center gap-1.5 text-[12px]">
+      <div className="scroll-x flex items-center gap-1.5 text-[13px]">
         {batches.map((b) => (
           <button
             key={b}
@@ -150,7 +150,7 @@ export default function Page() {
       />
 
       {error && (
-        <div className="panel px-3 py-2 text-[12px]" style={{ borderColor: "var(--sell)" }}>
+        <div className="panel px-3 py-2 text-[13px]" style={{ borderColor: "var(--sell)" }}>
           <span style={{ color: "var(--sell)" }}>chain read failed:</span> {error}
         </div>
       )}
@@ -178,7 +178,7 @@ export default function Page() {
               <div className="border-b border-[var(--line)] px-3 py-2">
                 <span className="panel-label">Parameters &amp; disclosure</span>
               </div>
-              <div className="px-3 py-2 text-[12px]">
+              <div className="px-3 py-2 text-[13px]">
                 <Line k="commit window" v={`${market.commitWindow}s`} />
                 <Line k="max orders / batch" v={String(market.maxOrders)} />
                 <Line k="orders in this batch" v={`${market.batch.orderCount} / ${market.maxOrders}`} />
@@ -192,20 +192,25 @@ export default function Page() {
                   </>
                 )}
               </div>
-              <div className="mt-auto border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed text-[var(--dim)]">
-                <span className="text-[var(--ink)]">Public:</span> that an address submitted an order
-                and when, the clearing price, the matched volume.{" "}
-                <span className="text-[var(--ink)]">Never public:</span> side, limit, size, each
-                desk&apos;s fill, and everything about orders that did not cross.
+              <div className="mt-auto border-t border-[var(--line)] px-3 py-2">
+                <p className="prose">
+                  <span className="text-[var(--ink)]">Public:</span> that an address submitted an
+                  order and when, the clearing price, and the matched volume.{" "}
+                  <span className="text-[var(--ink)]">Never public:</span> side, limit, size, each
+                  desk&apos;s fill, and everything about orders that did not cross.
+                </p>
               </div>
             </div>
           </div>
         </Section>
       )}
 
-      <footer className="border-t border-[var(--line)] pt-3 text-[12px] leading-relaxed text-[var(--dim)]">
-        Read-only. No wallet, no signature, no permission needed to fetch this entire book — that
-        is the point. Testnet only.
+      <footer className="border-t border-[var(--line)] pt-3">
+        <p className="prose">
+          Read-only. Fetching this entire book requires no wallet, no signature and no permission,
+          which is what makes its confidentiality a property of the chain rather than of this page.
+          Testnet only.
+        </p>
       </footer>
     </main>
   )
@@ -223,7 +228,7 @@ function BookSkeleton() {
     <div className="panel">
       <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
         <span className="panel-label">Order book</span>
-        <span className="text-[12px] text-[var(--dim)]">reading chain…</span>
+        <span className="text-[13px] text-[var(--dim)]">reading chain…</span>
       </div>
       <div className="flex flex-col">
         {Array.from({ length: 6 }, (_, i) => (

@@ -100,10 +100,33 @@ visibility by keys held:
   ok   Cygnus    reads 3/6 (owns 3)
 ```
 
+## Slop audit
+
+Checked against the catalogue at <https://impeccable.style/slop/>. Six patterns were present
+and removed:
+
+| Rule | What was there |
+|---|---|
+| Pulsing status dot | The network dot pulsed forever. It reports a static fact, so it now sits still. |
+| Glassmorphism | The sticky bar was translucent with an 8px backdrop blur. Solid now, which is also easier to read against. |
+| Hero metric layout | Four equal metric tiles, each a big number over tracked caps, with "public" repeated under two of them. Now two result figures, batch state and order count at the scale of context, and the disclosure stated once for the whole readout. |
+| Em-dash overuse | 32 across the components. The ones left are the "no value" glyph, not punctuation. |
+| Aphoristic-cadence copy | Manufactured contrasts: *"The market publishes a price. No participant reveals their hand."*, *"Nothing here is hidden by this interface; it is unreadable on chain."* Rewritten as plain statements. |
+| Line length, undersized text | Panel prose ran the full 1400px, roughly 180 characters, at 11–12px. `.prose` caps the measure at 78ch and sets 13px. |
+
+Uppercase labels were kept on **panel headers**, where they are conventional chrome in a trading
+interface, but tracking dropped to 0.04em and size rose to 12px. Section headings became
+sentence-case text rather than tiny tracked caps.
+
+Three flagged patterns were judged false positives here and kept deliberately: a single
+monospace family (correct for a terminal), the warm palette (the rule targets cream
+*backgrounds*, not warm text on dark), and the four-rectangle SVG mark (a logo, not
+shape-assembled hero art).
+
 ## Notes for whoever restyles this
 
 Everything visual is the CSS variables at the top of `app/globals.css` plus the `.sealed`,
-`.panel` and `.panel-label` classes. Tailwind 4 is used for layout only.
+`.panel`, `.panel-label` and `.prose` classes. Tailwind 4 is used for layout only.
 
 Four things worth preserving through a redesign, each of them a defect that was fixed rather
 than a preference:

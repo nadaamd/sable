@@ -129,7 +129,7 @@ export default async function Image() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 20 }}>
           <div style={{ display: "flex", color: DIM }}>
-            The price is public. Every order stays sealed — including from us.
+            The clearing price is public. Every order stays encrypted, including from us.
           </div>
           <div style={{ display: "flex", color: DIM }}>garbled circuits on COTI gcEVM</div>
         </div>

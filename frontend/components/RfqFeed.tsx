@@ -22,7 +22,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
     <div className="panel">
       <div className="flex items-baseline justify-between border-b border-[var(--line)] px-3 py-2">
         <span className="panel-label">RFQ channel</span>
-        <span className="text-[12px] text-[var(--dim)]">{messages.length} encrypted message(s)</span>
+        <span className="text-[13px] text-[var(--dim)]">{messages.length} encrypted messages</span>
       </div>
 
       {messages.length === 0 ? (
@@ -52,7 +52,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
                   {m.text ? (
                     <span>
                       <span className="text-[var(--buy)]">{m.text}</span>
-                      <span className="ml-2 text-[11px] text-[var(--dim)]">read as {m.readAs}</span>
+                      <span className="ml-2 text-[12px] text-[var(--dim)]">read as {m.readAs}</span>
                     </span>
                   ) : (
                     <span className="text-[var(--dim)]">no key held</span>
@@ -65,11 +65,14 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
         </div>
       )}
 
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[12px] text-[var(--dim)]">
-        Sender and recipient can each decrypt; nobody else can. An IOI carries a side and a
-        size and deliberately no price — enough for a counterparty to size up, nothing about
-        valuation. COTI pays each desk for the encrypted cells it stores, so the protocol funds
-        the private negotiation it depends on.
+      <div className="border-t border-[var(--line)] px-3 py-2">
+        <p className="prose">
+          Sender and recipient can each decrypt one of these; nobody else can decrypt either
+          copy. An indication of interest carries a side and a size and deliberately no price,
+          which is enough for a counterparty to size up without learning a valuation. COTI pays
+          each desk for the encrypted cells it stores, so the protocol funds the private
+          negotiation it depends on.
+        </p>
       </div>
     </div>
   )

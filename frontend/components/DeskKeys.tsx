@@ -57,8 +57,8 @@ export function DeskKeys({
           <span className="panel-label mr-1">View as desk</span>
 
           {keys.length === 0 ? (
-            <span className="text-[12px] text-[var(--dim)]">
-              No desk keys loaded — run <span className="text-[var(--ink)]">npm run frontend:config</span>{" "}
+            <span className="text-[13px] text-[var(--dim)]">
+              No desk keys loaded. Run <span className="text-[var(--ink)]">npm run frontend:config</span>{" "}
               after an agent run, or add one manually.
             </span>
           ) : (
@@ -78,14 +78,14 @@ export function DeskKeys({
                 >
                   <span aria-hidden>{on ? "◉" : "○"}</span>
                   <span>{k.name}</span>
-                  <span className="text-[11px] text-[var(--dim)]">{k.address.slice(0, 8)}…</span>
+                  <span className="text-[12px] text-[var(--dim)]">{k.address.slice(0, 8)}…</span>
                 </button>
               )
             })
           )}
         </div>
 
-        <div className="flex items-center gap-3 text-[12px]">
+        <div className="flex items-center gap-3 text-[13px]">
           <span className="text-[var(--dim)]">
             {active.length}/{keys.length} unlocked
           </span>
@@ -101,24 +101,23 @@ export function DeskKeys({
       </div>
 
       {/* The one line that stops a wall of █ from reading as a broken page. */}
-      <div
-        className="border-t border-[var(--line)] px-3 py-2 text-[12px] leading-relaxed"
-        style={{ color: none ? "var(--ink)" : "var(--dim)" }}
-      >
-        {none ? (
-          <>
-            <span style={{ color: "var(--accent)" }}>The book below is sealed on chain.</span> It is
-            the whole book, fetched with public calls, and unreadable — side, limit, size and fill are
-            ciphertexts. Unlock one desk above to decrypt <em>that desk&apos;s</em> rows; every other
-            row stays █, including to us.
-          </>
-        ) : (
-          <>
-            Decryption happens locally with COTI&apos;s SDK — no key leaves this browser. A wrong key
-            does not error, it returns noise, so a value is only shown when the result is structurally
-            possible. Rows belonging to locked desks remain unreadable.
-          </>
-        )}
+      <div className="border-t border-[var(--line)] px-3 py-2">
+        <p className="prose" style={{ color: none ? "var(--ink)" : "var(--dim)" }}>
+          {none ? (
+            <>
+              <span style={{ color: "var(--accent)" }}>The book below is sealed on chain.</span> It
+              is the complete book, fetched with public calls, and side, limit, size and fill are all
+              ciphertexts. Unlocking one desk above decrypts that desk&apos;s own rows. Every other
+              row stays █, including for us.
+            </>
+          ) : (
+            <>
+              Decryption happens locally with COTI&apos;s SDK and no key leaves this browser. A wrong
+              key does not raise an error, it returns noise, so a value is shown only when the result
+              is structurally possible. Rows belonging to locked desks remain unreadable.
+            </>
+          )}
+        </p>
       </div>
 
       {open && (
@@ -142,7 +141,7 @@ export function DeskKeys({
             onChange={(e) => setAesKey(e.target.value)}
           />
           <button onClick={submit}>load</button>
-          {error && <span className="text-[12px] text-[var(--sell)]">{error}</span>}
+          {error && <span className="text-[13px] text-[var(--sell)]">{error}</span>}
         </div>
       )}
     </div>

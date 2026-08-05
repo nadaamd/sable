@@ -5,10 +5,10 @@
  * no permission to render the entire order book. It renders it sealed, because that is what
  * the chain actually stores.
  */
-import { Contract, JsonRpcProvider } from "ethers"
+import { Contract, FetchRequest, JsonRpcProvider } from "ethers"
 import { decryptString, decryptUint } from "@coti-io/coti-sdk-typescript"
 import { CROSS_ABI, MESSAGING_ABI } from "./abi"
-import { CROSS_ADDRESS, MESSAGING_ADDRESS, RPC_URL, type DeskKey } from "./deployment"
+import { CHAIN_ID, CROSS_ADDRESS, MESSAGING_ADDRESS, RPC_URL, type DeskKey } from "./deployment"
 
 export type Phase = "idle" | "commit" | "awaiting-clear" | "cleared"
 
@@ -63,9 +63,33 @@ export type RewardsView = {
   usageUnits: bigint
 }
 
+/**
+ * Retry every call, because the testnet RPC is not reliable.
+ *
+ * Measured at 4/10 availability during one outage, which is fatal here for a reason specific
+ * to this page: a single 502 on any of the ~40 view calls behind one poll turns the whole
+ * book into an error state. The page reads as "the market is broken" when the market is fine.
+ *
+ * Retry belongs per-call, not per-render: at 40% availability, four attempts take the odds of
+ * losing a call from 60% to 13%, and a poll needs every call to land.
+ */
+function resilient(url: string): JsonRpcProvider {
+  const req = new FetchRequest(url)
+  req.timeout = 20_000
+  req.retryFunc = async (_req, resp, attempt) => {
+    // 0 is a transport failure (DNS, reset, CORS-level); 429/5xx are the RPC shedding load.
+    const transient = resp.statusCode === 0 || resp.statusCode === 429 || resp.statusCode >= 500
+    if (!transient || attempt >= 4) return false
+    await new Promise((r) => setTimeout(r, 200 * 2 ** attempt))
+    return true
+  }
+  // staticNetwork: skip the eth_chainId probe on every call — one fewer thing to lose.
+  return new JsonRpcProvider(req, CHAIN_ID, { staticNetwork: true })
+}
+
 let _provider: JsonRpcProvider | null = null
 export function provider(): JsonRpcProvider {
-  if (!_provider) _provider = new JsonRpcProvider(RPC_URL, undefined, { staticNetwork: true })
+  if (!_provider) _provider = resilient(RPC_URL)
   return _provider
 }
 

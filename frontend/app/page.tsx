@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Blotter } from "@/components/Blotter"
 import { CrossPanel } from "@/components/CrossPanel"
+import { Header } from "@/components/Header"
 import { DeskKeys } from "@/components/DeskKeys"
 import { RfqFeed } from "@/components/RfqFeed"
 import { loadMarket, loadRewards, loadRfq, type MarketView, type RewardsView, type RfqMessage } from "@/lib/chain"
-import { CROSS_ADDRESS, EXPLORER, MESSAGING_ADDRESS, envDesks, type DeskKey } from "@/lib/deployment"
+import { envDesks, type DeskKey } from "@/lib/deployment"
 
 const STORAGE = "sable.deskKeys"
 const POLL_MS = 8000
@@ -117,41 +118,7 @@ export default function Page() {
 
   return (
     <main className="mx-auto flex max-w-[1400px] flex-col gap-4 p-3 sm:p-4">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <h1 className="text-xl tracking-wide">
-            SABLE <span className="text-[var(--dim)]">/ the confidential cross</span>
-          </h1>
-          <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-[var(--dim)]">
-            A sealed-bid, uniform-price batch auction whose matching engine runs on encrypted
-            orders. The market publishes a price. No participant reveals their hand.
-          </p>
-        </div>
-        <div className="text-[12px] text-[var(--dim)] sm:text-right">
-          <div>
-            cross{" "}
-            <a href={`${EXPLORER}/address/${CROSS_ADDRESS}`} target="_blank" rel="noreferrer">
-              {CROSS_ADDRESS.slice(0, 10)}…
-            </a>
-          </div>
-          <div>
-            rfq{" "}
-            <a href={`${EXPLORER}/address/${MESSAGING_ADDRESS}`} target="_blank" rel="noreferrer">
-              {MESSAGING_ADDRESS.slice(0, 10)}…
-            </a>
-          </div>
-          <div className="flex items-center gap-1.5 sm:justify-end">
-            <span
-              className={market ? "live-dot" : undefined}
-              style={{ color: market ? "var(--buy)" : "var(--seal)" }}
-              aria-hidden
-            >
-              ●
-            </span>
-            COTI testnet · block {market?.blockNumber ?? "…"}
-          </div>
-        </div>
-      </header>
+      <Header blockNumber={market?.blockNumber} />
 
       {error && (
         <div className="panel px-3 py-2 text-[12px]" style={{ borderColor: "var(--sell)" }}>
@@ -193,7 +160,7 @@ export default function Page() {
             The cross leads on mobile — two public numbers beat a table you have to scroll — and
             stays in view on desktop, where the book can run to 32 rows.
           */}
-          <div className="lg:order-2 lg:sticky lg:top-4 lg:self-start">
+          <div className="lg:order-2 lg:sticky lg:self-start lg:top-[calc(var(--header-h)+1rem)]">
             <CrossPanel batch={market.batch} ticks={market.ticks} nowSec={nowSec} />
           </div>
 

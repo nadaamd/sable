@@ -32,7 +32,7 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
               style={{
                 border: `1px solid ${isClearing ? "var(--accent-deep)" : "var(--line)"}`,
                 color: isClearing ? "var(--accent-deep)" : "var(--dim)",
-                background: isClearing ? "color-mix(in srgb, var(--accent-fill) 50%, transparent)" : "transparent",
+                background: isClearing ? "color-mix(in srgb, var(--accent) 60%, transparent)" : "transparent",
                 fontVariantNumeric: "tabular-nums",
               }}
               title={isClearing ? "the clearing tick" : undefined}

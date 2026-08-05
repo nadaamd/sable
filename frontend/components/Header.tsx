@@ -111,7 +111,7 @@ export function Header({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
           <span className="hidden items-center gap-1.5 md:flex">
             <Contract label="cross" address={CROSS_ADDRESS} />
-            <span className="opacity-50">·</span>
+            <span className="opacity-70">·</span>
             <Contract label="rfq" address={MESSAGING_ADDRESS} />
           </span>
 
@@ -120,7 +120,7 @@ export function Header({
               ●
             </span>
             COTI testnet
-            <span className="opacity-50">·</span>
+            <span className="opacity-70">·</span>
             <span className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{blockNumber ?? "…"}</span>
           </span>
 

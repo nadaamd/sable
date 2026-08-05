@@ -39,41 +39,44 @@ Wide tables scroll inside their own panel; the page never scrolls sideways.
 
 ## Palette
 
-A cream document with plum chrome. All five given colours appear at full strength, doing the job
-their luminance suits:
+A neutral paper page, with the palette carried by the chrome. Every given colour appears at full
+strength:
 
 | Hex | Name | Role | Contrast |
 |---|---|---|---|
-| `#E2E8C0` | Cream | `--bg`, the page; and the text on chrome | 8.84:1 on chrome |
-| `#EDD9A3` | Soft Peach | `--panel-hi`, a revealed row | 8.05:1 on chrome |
-| `#CEA07E` | Light Bronze | `--accent`, accents on chrome | 4.79:1 on chrome |
-| `#846C5B` | Olive Wood | `--seal`, sealed fields | 4.23:1 on panel |
-| `#443742` | Mauve Shadow | `--chrome` (bars, panel heads) and `--ink` (body text) | 9.67:1 on panel |
+| `#443742` | Mauve Shadow | `--chrome` (header bar, panel heads) and `--ink` (body text) | 10.1:1 on page |
+| `#E2E8C0` | Cream | `--chrome-ink`, text on chrome | 8.84:1 |
+| `#CEA07E` | Light Bronze | `--accent`, accents and fills on chrome | 4.79:1 |
+| `#EDD9A3` | Soft Peach | `--panel-hi`, a revealed row | 1.35:1 vs panel |
+| `#846C5B` | Olive Wood | `--seal`, sealed fields | 4.42:1, fills |
 
-### Why the chrome is plum
+Two derivations, for the roles that must carry text on a pale surface:
 
-The first light version darkened every text role until it passed AA on cream. That turned Light
-Bronze into `#7b4f22` and Olive Wood into `#5c4a3d`. Both cleared the contrast bar and both lost
-the palette: the page came out cream and mud, with none of the given colours visible at strength.
+- `--dim` `#6C5545` — Olive Wood darkened
+- `--accent-deep` `#7C4D2F` — Light Bronze darkened, used **only** off-chrome: body links, the
+  clearing tick, focus rings. On chrome, use `--accent`.
 
-The fix is a **surface**, not a darker text colour. On Mauve Shadow, Cream (8.84:1), Soft Peach
-(8.05:1) and Light Bronze (4.79:1) all clear AA untouched. So the header bar and every panel head
-went plum, and the palette came back. `.panel-head` is the class; inside it, labels and links take
-`--accent` at full strength.
-
-Two derivations remain, and only two:
-
-- `--dim` `#7C6454` — Olive Wood one shade down, 4.75:1 on panel. Prose on cream needs 4.5:1 and
-  Olive Wood itself measures 4.23:1. One shade, not three.
-- `--accent-deep` `#8F5C3A` — Light Bronze darkened, 4.81:1, used **only** where an accent must
-  sit on cream: body links, the clearing tick, focus rings. On chrome, use `--accent`.
-
-`--buy` (`#4F6A24` sage) and `--sell` (`#9C4527` terracotta) are still additions: the palette has
-no signal colours and a blotter needs buy and sell distinguishable. The BUY/SELL labels carry the
+`--buy` (`#41561C` sage) and `--sell` (`#85391F` terracotta) are additions: the palette has no
+signal colours and a blotter needs buy and sell distinguishable. The BUY/SELL labels carry the
 meaning independently, so colour reinforces rather than encodes.
 
-One consequence worth naming: sealed fields are dark bars on a light surface, which is what a
-redacted document actually looks like. The metaphor reads better this way round.
+### Three surfaces, and the mistake worth not repeating
+
+There are **three** light surfaces here: the page, a panel, and a Soft Peach revealed row. The
+page and the peach row are both darker than the panel.
+
+An earlier version calibrated every text role against the panel alone. Five pairs then failed AA
+on the other two surfaces, including the pitch and footer prose (which sit directly on the page)
+and the BUY label on a revealed row, which is the most-looked-at cell in the demo. **Calibrate
+against Soft Peach**, the darkest surface any body text touches; passing there passes everywhere.
+
+Two versions before that, the page itself was Cream and every text role had been darkened until
+it cleared AA against it. Contrast passed and the palette died: Light Bronze became `#7b4f22`,
+Olive Wood `#5c4a3d`, and the page came out cream and mud. The fix was a **surface**, not a darker
+text colour — putting the chrome on plum, where Cream, Soft Peach and Light Bronze all clear AA
+untouched. Moving the page to a neutral off-white then did two more things: it gave the prose the
+headroom it was missing, and it makes Soft Peach and Light Bronze read harder than they could on
+cream, where each sat a shade from its own background.
 
 The palette also governs `app/icon.svg`, `app/opengraph-image.tsx` and the `themeColor` in
 `app/layout.tsx`.
@@ -158,10 +161,9 @@ sentence-case text rather than tiny tracked caps.
 One flagged pattern is judged a false positive and kept: the four-rectangle SVG mark is a logo,
 not shape-assembled hero art.
 
-**Rule 30, cream/beige palette, is now a live hit** and is being accepted deliberately. It was
-previously dismissed because Cream was text on a dark page; the page is now literally cream. The
-palette was specified rather than reached for as a default "tasteful" surface, which is what the
-rule is about, but the tell is real and worth stating rather than explaining away.
+Rule 30, **cream/beige palette**, was briefly a live hit while the page background was Cream. The
+page is a neutral off-white now, so the warm colours sit on the chrome and the data rather than
+forming the surface, and the rule no longer applies.
 
 A third, **single font for everything**, was a fair hit and is now fixed by the type split
 above.

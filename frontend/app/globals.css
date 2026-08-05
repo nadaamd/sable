@@ -1,51 +1,54 @@
 @import "tailwindcss";
 
 /*
- * Warm earth palette: a cream document with plum chrome.
+ * A neutral paper page, with the palette carried by the chrome.
  *
- * All five given colours appear at FULL strength, doing the job their luminance suits:
+ *   #443742  Mauve Shadow  --chrome  header bar and panel heads; --ink  body text
+ *   #E2E8C0  Cream         --chrome-ink   text on chrome                     8.84:1
+ *   #CEA07E  Light Bronze  --accent       accents on chrome                  4.79:1
+ *   #EDD9A3  Soft Peach    --panel-hi     a revealed row
+ *   #846C5B  Olive Wood    --seal         sealed fields, dark bars on light
  *
- *   #E2E8C0  Cream         --bg          the page, and the text on chrome
- *   #EDF0DC  (derived)     --panel       panels lift off the page
- *   #EDD9A3  Soft Peach    --panel-hi    a revealed row, like a highlighter pass
- *   #CEA07E  Light Bronze  --accent      accents ON chrome                    4.79:1
- *   #846C5B  Olive Wood    --seal        sealed fields, dark bars on light    4.23:1
- *   #443742  Mauve Shadow  --chrome      header bars and panel heads
- *                          --ink         body text on cream                   9.67:1
+ * Two earlier attempts, and what each got wrong:
  *
- * The first attempt at a light page darkened every text role until it passed AA on cream, which
- * turned Light Bronze into #7b4f22 and Olive Wood into #5c4a3d. Both cleared the contrast bar
- * and both lost the palette: the page came out cream and mud, with none of the given colours
- * visible at strength.
+ * 1. Darkening every text role until it cleared AA on a cream page turned Light Bronze into
+ *    #7b4f22 and Olive Wood into #5c4a3d. Contrast passed; the palette was gone.
  *
- * The fix is a surface, not a darker text colour. On Mauve Shadow, Cream (8.84:1), Soft Peach
- * (8.05:1) and Light Bronze (4.79:1) all clear AA untouched. So the chrome went plum and the
- * palette came back.
+ * 2. Putting the chrome on plum brought the palette back, but the page itself stayed Cream and
+ *    the roles were calibrated against --panel only. There are THREE light surfaces here (page,
+ *    panel, and a Soft Peach revealed row) and the page and the peach row are both darker than
+ *    the panel. Five pairs failed AA on them, including the pitch and footer prose, which sit
+ *    directly on the page, and the BUY label on a revealed row.
  *
- * Two derivations remain, and only two:
- *   --dim          #7C6454  Olive Wood one shade down, 4.75:1 on panel. Prose on cream needs
- *                           4.5:1 and Olive Wood itself measures 4.23:1. One shade, not three.
- *   --accent-deep  #8F5C3A  Light Bronze darkened, 4.81:1, used ONLY where an accent must sit
- *                           on cream (body links, the clearing tick). On chrome, use --accent.
+ * So: the page is a neutral off-white, and every text role is calibrated against Soft Peach, the
+ * darkest surface any of them touches. Passing there passes everywhere.
  *
- * --buy and --sell are still additions: the palette has no signal colours and a blotter needs
- * buy and sell distinguishable. The BUY/SELL labels carry the meaning independently.
+ *   --dim          #6C5545  Olive Wood down    4.98:1 peach / 6.26:1 page / 6.71:1 panel
+ *   --accent-deep  #7C4D2F  Light Bronze down  5.09 / 6.39 / 6.85   (accents NOT on chrome)
+ *   --buy          #41561C  sage, added        5.85 / 7.35 / 7.88
+ *   --sell         #85391F  terracotta, added  5.79 / 7.27 / 7.79
+ *
+ * The neutral page also makes Soft Peach and Light Bronze read harder than a cream page did,
+ * where they sat a shade from their own background and barely registered.
+ *
+ * --buy and --sell remain additions: the palette has no signal colours. The BUY/SELL labels
+ * carry the meaning independently, so colour reinforces rather than encodes.
  */
 :root {
-  --bg: #e2e8c0;
-  --panel: #edf0dc;
+  --bg: #f3f3f2;
+  --panel: #fbfbfa;
   --panel-hi: #edd9a3;
   --chrome: #443742;
   --chrome-ink: #e2e8c0;
-  --line: #c9cfae;
-  --line-hi: #b0b892;
+  --line: #dedcd6;
+  --line-hi: #c9c6bd;
   --ink: #443742;
-  --dim: #7c6454;
+  --dim: #6c5545;
   --seal: #846c5b;
-  --buy: #4f6a24;
-  --sell: #9c4527;
+  --buy: #41561c;
+  --sell: #85391f;
   --accent: #cea07e;
-  --accent-deep: #8f5c3a;
+  --accent-deep: #7c4d2f;
   --header-h: 4.5rem;
 
   /*
@@ -127,9 +130,9 @@ input {
 /*
  * A panel's head is chrome: plum, carrying the palette's light colours.
  *
- * This is what brings the palette back on a light page. Text roles on cream have to be dark to
- * clear AA, which flattens Light Bronze and Olive Wood into mud. On plum they clear it
- * untouched, so the given colours appear at full strength wherever the chrome does.
+ * This is what keeps the palette present on a light page. A text role sitting on a pale surface
+ * has to be dark to clear AA, which flattens Light Bronze and Olive Wood into mud. On plum they
+ * clear it untouched, so the given colours appear at full strength wherever the chrome does.
  */
 .panel-head {
   background: var(--chrome);
@@ -179,8 +182,8 @@ th {
   font-weight: 500;
   text-align: left;
   text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.04em;
 }
 
 th,
@@ -202,7 +205,7 @@ tbody tr:last-child td {
 }
 
 input {
-  background: #f6f8ec;
+  background: #ffffff;
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 7px 8px;
@@ -262,7 +265,7 @@ a:hover {
  */
 @keyframes reveal {
   0% {
-    background-color: color-mix(in srgb, var(--accent-fill) 60%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 70%, transparent);
   }
   100% {
     background-color: transparent;

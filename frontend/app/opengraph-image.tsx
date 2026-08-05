@@ -16,14 +16,14 @@ export const alt = "Sable — a sealed-bid auction whose matching engine runs on
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-const BG = "#e2e8c0"
-const PANEL = "#edf0dc"
-const LINE = "#c9cfae"
+const BG = "#f3f3f2"
+const PANEL = "#fbfbfa"
+const LINE = "#dedcd6"
 const SEAL = "#846c5b"
 const INK = "#443742"
-const DIM = "#5c4a3d"
-const ACCENT = "#7b4f22"
-const BUY = "#455a1f"
+const DIM = "#6c5545"
+const ACCENT = "#7c4d2f"
+const BUY = "#41561c"
 
 /** A sealed field: present, addressable, unreadable. */
 function Sealed({ w }: { w: number }) {

@@ -81,11 +81,14 @@ export function Header({
   maxOrders,
   nowSec,
   blockNumber,
+  staleFor,
 }: {
   batch?: BatchView
   maxOrders?: number
   nowSec: number
   blockNumber?: number
+  /** Seconds since the last successful read, or null before the first one lands. */
+  staleFor?: number | null
 }) {
   const cleared = batch?.cleared ?? false
   const remaining = batch ? batch.commitDeadline - nowSec : 0
@@ -122,6 +125,10 @@ export function Header({
             COTI testnet
             <span className="opacity-70">·</span>
             <span className="mono" style={{ fontVariantNumeric: "tabular-nums" }}>{blockNumber ?? "…"}</span>
+            {/* The page polls. Saying so beats a decorative pulse that implies a live stream. */}
+            {typeof staleFor === "number" && (
+              <span className="opacity-70">read {staleFor < 2 ? "just now" : `${staleFor}s ago`}</span>
+            )}
           </span>
 
           <span className="flex items-center gap-3 whitespace-nowrap">

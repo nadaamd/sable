@@ -24,6 +24,8 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000))
   const [viewBatch, setViewBatch] = useState<number | undefined>(undefined)
+  /** When the last successful read landed, so the header can say how fresh the page is. */
+  const [readAt, setReadAt] = useState<number | null>(null)
 
   /**
    * Demo desks come from .env.local; anything pasted in the UI is layered on top.
@@ -57,6 +59,7 @@ export default function Page() {
       setMarket(m)
       setRfq(f)
       setRewards(await loadRewards(f))
+      setReadAt(Math.floor(Date.now() / 1000))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -147,6 +150,7 @@ export default function Page() {
         maxOrders={market?.maxOrders}
         nowSec={nowSec}
         blockNumber={market?.blockNumber}
+        staleFor={readAt === null ? null : nowSec - readAt}
       />
 
       {error && (

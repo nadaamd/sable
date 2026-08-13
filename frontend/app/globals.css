@@ -99,12 +99,24 @@ input {
   font-family: var(--font-mono);
 }
 
-/* A sealed value: present on chain, addressable, and unreadable. */
+/*
+ * A sealed value: present on chain, addressable, and unreadable.
+ *
+ * It carries the ciphertext in a title attribute, which nobody discovers by accident. The help
+ * cursor and the hover shift are the invitation: they say there is something real underneath
+ * without claiming it can be read.
+ */
 .sealed {
   font-family: var(--font-mono);
   color: var(--seal);
   letter-spacing: 1px;
   user-select: none;
+  cursor: help;
+  transition: color 120ms ease;
+}
+
+.sealed:hover {
+  color: var(--accent-deep);
 }
 
 .panel {

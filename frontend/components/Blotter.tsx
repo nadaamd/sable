@@ -120,6 +120,11 @@ export function Blotter({ batch }: { batch: BatchView }) {
               {readable} of {total}
             </span>{" "}
             readable with the keys you hold
+            {readable === 0 && (
+              <span className="ml-2 text-[var(--accent)] opacity-100">
+                &mdash; hover any █ to see its ciphertext
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -133,14 +138,16 @@ export function Blotter({ batch }: { batch: BatchView }) {
           <table>
             <thead>
               <tr>
-                <th />
+                <th>#</th>
                 <th>Trader</th>
                 <th>Side</th>
                 <th className="text-right">Limit</th>
                 <th className="text-right">Size</th>
                 <th className="text-right">Fill</th>
-                <th className="hidden md:table-cell">Ciphertext</th>
-                <th />
+                <th className="hidden md:table-cell" title="First and last bytes of the stored ciphertext">
+                  Ciphertext
+                </th>
+                <th>Escrow</th>
               </tr>
             </thead>
             <tbody>

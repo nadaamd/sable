@@ -6,6 +6,19 @@ function shortAddr(a: string) {
   return `${a.slice(0, 6)}…${a.slice(-4)}`
 }
 
+/**
+ * `IOI:B:70` is a wire format, not a sentence.
+ *
+ * The messaging layer caps a chunk at 24 bytes, so the payload is terse by necessity. That is a
+ * reason to decode it for the reader, not a reason to make them decode it: a visitor should see
+ * what the desk actually said, with the raw bytes beside it as corroboration.
+ */
+function decodeIoi(text: string): { side: "buy" | "sell"; size: number } | null {
+  const m = /^IOI:([BS]):(\d+)$/.exec(text.trim())
+  if (!m) return null
+  return { side: m[1] === "B" ? "buy" : "sell", size: Number(m[2]) }
+}
+
 function ctPreview(chunks: bigint[]): string {
   if (chunks.length === 0) return "—"
   return chunks
@@ -17,6 +30,23 @@ function ctPreview(chunks: bigint[]): string {
  * The pre-trade layer: desks telling each other how much interest they have, on chain and
  * end-to-end encrypted. Note what an IOI never contains — a price.
  */
+function Decoded({ text, readAs }: { text: string; readAs?: string }) {
+  const ioi = decodeIoi(text)
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-2">
+      {ioi ? (
+        <span style={{ color: ioi.side === "buy" ? "var(--buy)" : "var(--sell)" }}>
+          wants to {ioi.side} {ioi.size}
+        </span>
+      ) : (
+        <span className="text-[var(--ink)]">{text}</span>
+      )}
+      {ioi && <span className="text-[12px] text-[var(--dim)]">{text}</span>}
+      {readAs && <span className="sans text-[12px] text-[var(--dim)]">read with {readAs}&apos;s key</span>}
+    </span>
+  )
+}
+
 export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskName: (a: string) => string }) {
   return (
     <div className="panel">
@@ -37,7 +67,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
               <th />
               <th>From</th>
               <th>To</th>
-              <th>On chain</th>
+              <th title="First bytes of each stored ciphertext chunk">On chain</th>
               <th>Decrypted</th>
             </tr>
           </thead>
@@ -50,10 +80,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
                 <td className="text-[12px] sealed">{ctPreview(m.chunks)}</td>
                 <td>
                   {m.text ? (
-                    <span>
-                      <span className="text-[var(--buy)]">{m.text}</span>
-                      <span className="ml-2 text-[12px] text-[var(--dim)]">read as {m.readAs}</span>
-                    </span>
+                    <Decoded text={m.text} readAs={m.readAs} />
                   ) : (
                     <span className="text-[var(--dim)]">no key held</span>
                   )}

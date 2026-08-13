@@ -30,7 +30,10 @@ ciphertext (which is public) — a uniform grid read as a loading placeholder. T
 lives in this band's heading, where it belongs.
 
 **Pre-trade negotiation.** The encrypted IOIs between desks. Sender and recipient can each
-decrypt; nobody else can. An IOI carries a side and a size and deliberately no price.
+decrypt; nobody else can. An IOI carries a side and a size and deliberately no price. The payload
+is decoded for the reader (`IOI:B:70` renders as *wants to buy 70*) with the raw bytes beside it:
+the 24-byte chunk limit is a reason the wire format is terse, not a reason to make a visitor parse
+it.
 
 **Market rules.** The public price grid with the clearing tick marked, beside the parameters and
 the disclosure summary.
@@ -190,6 +193,9 @@ Everything visual is the CSS variables at the top of `app/globals.css` plus the 
 Four things worth preserving through a redesign, each of them a defect that was fixed rather
 than a preference:
 
+0. **Sealed values must be inspectable.** They carry their ciphertext in a `title`, which nobody
+   discovers by accident, so `.sealed` has a help cursor and a hover shift. That is the invitation
+   to check that something real is underneath.
 1. **Sealed values must read as sealed** — not as missing, and not as a loading state. `--seal`
    was once 1.45:1 against the panel, which made a sealed book look empty instead of opaque.
 2. **The default view is fully sealed.** Unlocking is an explicit action, because the first

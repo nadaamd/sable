@@ -1,5 +1,34 @@
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
+
+/*
+ * IBM Plex, sans and mono.
+ *
+ * The system stack rendered SF Pro, which is legible but reads as no decision at all. Plex was
+ * drawn by IBM for technical interfaces and code, so it holds up at 13px where a display face
+ * would not, and the sans and mono are siblings: switching between prose and a column of figures
+ * does not change the texture of the page.
+ *
+ * Not Inter, Geist, Space Grotesk or Instrument Serif — those are named in the slop catalogue as
+ * the faces that signal a generated site.
+ *
+ * next/font self-hosts these at build time, so there is no request to Google at runtime, and
+ * `adjustFontFallback` matches the fallback's metrics to avoid a shift while they load.
+ */
+const plexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-plex-sans",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-plex-mono",
+});
 
 const TITLE = "Sable — the confidential cross";
 const DESCRIPTION =
@@ -45,7 +74,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

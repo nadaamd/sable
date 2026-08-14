@@ -135,10 +135,19 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
-Both are the **system stacks**, deliberately, over Inter or Geist: those are named tells in the
-slop catalogue below, the native UI face is more legible at 13px on the machine rendering it, and
-there is no network request and no layout shift. Tailwind picks `--font-sans` and `--font-mono`
-up as theme tokens, so its `font-sans` / `font-mono` utilities resolve to the same stacks.
+Both are **IBM Plex**, self-hosted by `next/font` (see `app/layout.tsx`). Plex was drawn by IBM
+for technical interfaces and code, so it holds at 13px where a display face would not, and the
+sans and mono are siblings: moving between prose and a column of figures does not change the
+texture of the page.
+
+Not Inter, Geist, Space Grotesk or Instrument Serif — the slop catalogue names those as the faces
+that signal a generated site. The system stack stays as the fallback, with `adjustFontFallback`
+matching its metrics so nothing shifts while Plex loads, and `next/font` downloads the files at
+build time so there is no request to Google at runtime.
+
+One cascade detail worth knowing before you touch it: Tailwind also defines `--font-sans` and
+`--font-mono`, inside `@layer theme`. The definitions in `globals.css` are unlayered, and
+unlayered styles beat layered ones regardless of order, so ours win by rule rather than by luck.
 
 Use `.mono` and `.sans` to cross between them. `td` is monospaced by rule and `th` is not, since
 a header is a label and a cell is a value.

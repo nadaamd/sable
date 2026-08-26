@@ -159,6 +159,7 @@ export default function Page() {
         </div>
       )}
 
+
       {/*
         Sections follow the market's own order: what stayed sealed, how the desks negotiated
         before committing, and the rules they all played under. The control that acts on the

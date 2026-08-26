@@ -54,7 +54,18 @@ export function DeskKeys({
     <div className="panel" style={{ borderColor: none ? "var(--accent)" : "var(--line)" }}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="panel-label mr-1">View as desk</span>
+          {/*
+            An instruction while nothing is unlocked, a label once something is.
+            "View as desk" names a panel; it does not tell a first-time visitor that this one
+            click IS the demonstration. Until they make it, the control asks for it directly.
+          */}
+          {none ? (
+            <span className="mr-1 text-[14px] text-[var(--accent-deep)]">
+              Click a desk to decrypt its orders
+            </span>
+          ) : (
+            <span className="panel-label mr-1">Viewing as</span>
+          )}
 
           {keys.length === 0 ? (
             <span className="text-[13px] text-[var(--dim)]">

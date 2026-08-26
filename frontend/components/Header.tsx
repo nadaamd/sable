@@ -1,6 +1,7 @@
 "use client"
 
 import type { BatchView } from "@/lib/chain"
+import { Primer } from "@/components/Primer"
 import {
   CROSS_ADDRESS,
   EXPLAINER_URL,
@@ -142,10 +143,30 @@ export function Header({
         </div>
       </div>
 
-      <p className="prose">
-        A sealed-bid, uniform-price batch auction. Orders arrive as ciphertext and the matching
-        engine computes a clearing price without decrypting any of them.
-      </p>
+      {/*
+        Plain sentence first, the precise term second.
+        "A sealed-bid, uniform-price batch auction" is three pieces of market-microstructure
+        vocabulary in one breath: correct, and unreadable to anyone outside the field. It still
+        belongs on the page, but under the sentence that lets a visitor understand what they are
+        looking at without it.
+      */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-[15px] leading-relaxed">
+          Real orders sit on a public blockchain with their side, price and size encrypted. This
+          market computed a price from them without decrypting a single one.
+        </p>
+        <p className="prose">
+          A sealed-bid, uniform-price batch auction, matched under garbled circuits on COTI.
+        </p>
+      </div>
+
+      {/*
+        Order matters here: the claim, then the notation shown, then the figures that prove it.
+        With the primer after the readout a visitor met "Clearing price 101" before knowing what a
+        sealed row looks like, which is the wrong way round for a page that has to land in three
+        seconds.
+      */}
+      <Primer />
 
       <div className="panel">
         <div className="flex flex-wrap items-end gap-x-12 gap-y-6 px-4 py-4">

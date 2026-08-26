@@ -165,7 +165,26 @@ Trim to fit; the first two lines are the ones that have to survive.
 
 ## Still outstanding before posting
 
-- [ ] Deploy the frontend — the post needs a live app link
-- [ ] Make the repository public (`gh repo edit nadaamd/sable --visibility public`)
+- [x] Make the repository public — <https://github.com/nadaamd/sable>
+- [x] Deploy the frontend — <https://sable-cross.vercel.app>
 - [ ] Record, cut to ≤140 s, burn in captions
 - [ ] Post on X tagging **@COTINetwork**, then complete the submission form
+
+The live site opens on a fully sealed book and **cannot be unlocked by a visitor**: the desk AES
+keys live only in `.env.local` and were deliberately not deployed. The primer at the top teaches
+the notation regardless, which is why it is a labelled legend rather than live data.
+
+To make the reveal interactive for visitors, and accepting that it publishes the three demo
+desks' keys into the client bundle where anyone can read them:
+
+```bash
+npm run frontend:config                      # writes frontend/.env.local
+cd frontend
+grep NEXT_PUBLIC_DEMO_DESKS .env.local | cut -d= -f2- \
+  | npx vercel env add NEXT_PUBLIC_DEMO_DESKS production
+npx vercel --prod --yes
+npx vercel alias set <new-deployment-url> sable-cross.vercel.app
+```
+
+Testnet desks with no value, so the exposure is a demo choice rather than a risk — but it is a
+choice, and the sealed default is the honest one.

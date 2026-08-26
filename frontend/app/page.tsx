@@ -8,7 +8,7 @@ import { Section } from "@/components/Section"
 import { DeskKeys } from "@/components/DeskKeys"
 import { RfqFeed } from "@/components/RfqFeed"
 import { loadMarket, loadRewards, loadRfq, type MarketView, type RewardsView, type RfqMessage } from "@/lib/chain"
-import { envDesks, type DeskKey } from "@/lib/deployment"
+import { EXPLAINER_URL, envDesks, type DeskKey } from "@/lib/deployment"
 
 const STORAGE = "sable.deskKeys"
 const POLL_MS = 8000
@@ -197,14 +197,7 @@ export default function Page() {
                   </>
                 )}
               </div>
-              <div className="mt-auto border-t border-[var(--line)] px-3 py-2">
-                <p className="prose">
-                  <span className="text-[var(--ink)]">Public:</span> that an address submitted an
-                  order and when, the clearing price, and the matched volume.{" "}
-                  <span className="text-[var(--ink)]">Never public:</span> side, limit, size, each
-                  desk&apos;s fill, and everything about orders that did not cross.
-                </p>
-              </div>
+
             </div>
           </div>
         </Section>
@@ -212,9 +205,10 @@ export default function Page() {
 
       <footer className="border-t border-[var(--line)] pt-3">
         <p className="prose">
-          Read-only. Fetching this entire book requires no wallet, no signature and no permission,
-          which is what makes its confidentiality a property of the chain rather than of this page.
-          Testnet only.
+          Read-only. No wallet needed. Testnet only.{" "}
+          <a href={EXPLAINER_URL} target="_blank" rel="noreferrer">
+            How it works
+          </a>
         </p>
       </footer>
     </main>

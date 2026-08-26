@@ -40,6 +40,16 @@ the disclosure summary.
 
 Wide tables scroll inside their own panel; the page never scrolls sideways.
 
+### Text discipline
+
+The page carries about 250 words. It used to carry 400, of which 293 sat in explanatory footers —
+one paragraph under every panel, arguing the case. The argument is now made by the primer, which
+shows it, so each footer is a single line and several are gone.
+
+Anything longer belongs in [SABLE-EXPLAINED.md](../SABLE-EXPLAINED.md), which the header and the
+footer both link to. The division: **the page shows, the explainer tells.** If a sentence here is
+doing work a visitor could get from looking, cut it.
+
 ## Palette
 
 A neutral paper page, with the palette carried by the chrome. Every given colour appears at full

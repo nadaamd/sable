@@ -45,10 +45,7 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
 
       <div className="border-t border-[var(--line)] px-3 py-2">
         <p className="prose">
-          Clearing is permissionless. Once the commit window closes any address may trigger it, so
-          there is no operator who could stall a batch, and none who could read one. The price
-          chosen is the one that maximises matched volume over this grid, computed entirely on
-          encrypted orders.
+          Clearing is permissionless: once the window closes, any address may trigger it.
         </p>
       </div>
     </div>

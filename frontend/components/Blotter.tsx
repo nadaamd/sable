@@ -161,10 +161,8 @@ export function Blotter({ batch }: { batch: BatchView }) {
 
       <div className="border-t border-[var(--line)] px-3 py-2">
         <p className="prose">
-          Every row here comes from a public <code>view</code> call, so anyone can fetch this
-          table. Side, limit and size are ciphertexts encrypted under each desk&apos;s own key, so
-          they render as █ unless you hold that key. The interface is not withholding them; they
-          are unreadable on chain.
+          Fetched with public <code>view</code> calls. The blocks are ciphertexts on chain, not
+          redactions by this page.
         </p>
       </div>
     </div>

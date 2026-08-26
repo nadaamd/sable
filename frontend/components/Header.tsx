@@ -152,8 +152,8 @@ export function Header({
       */}
       <div className="flex flex-col gap-1.5">
         <p className="text-[15px] leading-relaxed">
-          Real orders sit on a public blockchain with their side, price and size encrypted. This
-          market computed a price from them without decrypting a single one.
+          These orders sit encrypted on a public blockchain. The market found a clearing price
+          without decrypting any of them.
         </p>
         <p className="prose">
           A sealed-bid, uniform-price batch auction, matched under garbled circuits on COTI.
@@ -211,10 +211,7 @@ export function Header({
         </div>
 
         <div className="border-t border-[var(--line)] px-4 py-2">
-          <p className="prose">
-            Those two figures are the only values this batch makes public. Side, limit, size and
-            every individual fill stay encrypted on chain.
-          </p>
+          <p className="prose">The only values this batch makes public.</p>
         </div>
       </div>
     </>

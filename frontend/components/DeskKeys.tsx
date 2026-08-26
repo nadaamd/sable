@@ -114,23 +114,12 @@ export function DeskKeys({
         </div>
       </div>
 
-      {/* The one line that stops a wall of █ from reading as a broken page. */}
+      {/* One line, not a paragraph. The primer above already taught the notation. */}
       <div className="border-t border-[var(--line)] px-3 py-2">
-        <p className="prose" style={{ color: none ? "var(--ink)" : "var(--dim)" }}>
-          {none ? (
-            <>
-              <span style={{ color: "var(--accent)" }}>The book below is sealed on chain.</span> It
-              is the complete book, fetched with public calls, and side, limit, size and fill are all
-              ciphertexts. Unlocking one desk above decrypts that desk&apos;s own rows. Every other
-              row stays █, including for us.
-            </>
-          ) : (
-            <>
-              Decryption happens locally with COTI&apos;s SDK and no key leaves this browser. A wrong
-              key does not raise an error, it returns noise, so a value is shown only when the result
-              is structurally possible. Rows belonging to locked desks remain unreadable.
-            </>
-          )}
+        <p className="prose">
+          {none
+            ? "The book below is sealed on chain, not by this page."
+            : "Decrypted in this browser. No key is transmitted."}
         </p>
       </div>
 

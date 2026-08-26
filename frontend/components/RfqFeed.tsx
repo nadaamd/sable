@@ -30,7 +30,7 @@ function ctPreview(chunks: bigint[]): string {
  * The pre-trade layer: desks telling each other how much interest they have, on chain and
  * end-to-end encrypted. Note what an IOI never contains — a price.
  */
-function Decoded({ text, readAs }: { text: string; readAs?: string }) {
+function Decoded({ text }: { text: string }) {
   const ioi = decodeIoi(text)
   return (
     <span className="flex flex-wrap items-baseline gap-x-2">
@@ -42,7 +42,6 @@ function Decoded({ text, readAs }: { text: string; readAs?: string }) {
         <span className="text-[var(--ink)]">{text}</span>
       )}
       {ioi && <span className="text-[12px] text-[var(--dim)]">{text}</span>}
-      {readAs && <span className="sans text-[12px] text-[var(--dim)]">read with {readAs}&apos;s key</span>}
     </span>
   )
 }
@@ -80,7 +79,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
                 <td className="text-[12px] sealed">{ctPreview(m.chunks)}</td>
                 <td>
                   {m.text ? (
-                    <Decoded text={m.text} readAs={m.readAs} />
+                    <Decoded text={m.text} />
                   ) : (
                     <span className="text-[var(--dim)]">no key held</span>
                   )}
@@ -94,11 +93,7 @@ export function RfqFeed({ messages, deskName }: { messages: RfqMessage[]; deskNa
 
       <div className="border-t border-[var(--line)] px-3 py-2">
         <p className="prose">
-          Sender and recipient can each decrypt one of these; nobody else can decrypt either
-          copy. An indication of interest carries a side and a size and deliberately no price,
-          which is enough for a counterparty to size up without learning a valuation. COTI pays
-          each desk for the encrypted cells it stores, so the protocol funds the private
-          negotiation it depends on.
+          Sender and recipient can each decrypt. An IOI carries a side and a size, never a price.
         </p>
       </div>
     </div>

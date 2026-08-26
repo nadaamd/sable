@@ -75,11 +75,7 @@ export function Primer() {
       </div>
 
       <div className="border-t border-[var(--line)] px-3 py-2">
-        <p className="prose">
-          An example of the notation, not a live row. Nobody else can decrypt that order,
-          including whoever runs the market and including us. The clearing price below was computed
-          from six orders in this state, without decrypting any of them.
-        </p>
+        <p className="prose">An example of the notation, not a live row.</p>
       </div>
     </div>
   )

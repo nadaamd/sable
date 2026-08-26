@@ -112,6 +112,16 @@ async function stageSetup(wallets: Wallet[], state: State) {
   })
   await cross.waitForDeployment()
   state.cross = await cross.getAddress()
+  /*
+   * A fresh deployment invalidates every field that tracked progress against the old one.
+   *
+   * Enumerating those fields by name got this wrong twice: first `submitted`, whose stale value
+   * made the submit loop skip and clear() revert on an empty batch, then `plans`, which made the desks reuse a decision taken against a RFQ round that no longer existed. So this
+   * keeps the deployment addresses and drops everything else, which cannot go stale by omission.
+   */
+  for (const k of Object.keys(state) as Array<keyof State>) {
+    if (!["base", "quote", "cross", "messaging"].includes(k)) delete state[k]
+  }
   writeState(state)
   console.log(`  cross ${state.cross}`)
 

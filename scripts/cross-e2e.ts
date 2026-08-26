@@ -193,6 +193,16 @@ async function stageSetup(traders: Wallet[], state: State) {
   })
   await cross.waitForDeployment()
   state.cross = await cross.getAddress()
+  /*
+   * A fresh deployment invalidates every field that tracked progress against the old one.
+   *
+   * Enumerating those fields by name got this wrong twice: first `submitted`, whose stale value
+   * made the submit loop skip and clear() revert on an empty batch, then nothing else, but the same trap was live in two sibling harnesses. So this
+   * keeps the deployment addresses and drops everything else, which cannot go stale by omission.
+   */
+  for (const k of Object.keys(state) as Array<keyof State>) {
+    if (!["base", "quote", "cross"].includes(k)) delete state[k]
+  }
   writeState(state)
   console.log(`  cross ${state.cross}`)
 

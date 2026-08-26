@@ -426,6 +426,24 @@ clear(orders) = 778,955 + 2,058,509·orders          at 12 price levels
 The intercept is independently corroborated — the kernel model's order-independent terms give
 759,400, within 2.6%.
 
+### No side channel through gas
+
+Clearing costs the same regardless of what the book contains. Two runs on 6 orders over 12
+levels, with no limit or size in common between their books:
+
+```
+contract e2e     102x60, 101x40, 100x20, 99x30, 100x30, 101x25   ->  13,130,028 gas
+agent run        103x37, 101x28,  99x20, 98x20, 100x35, 101x10   ->  13,130,028 gas
+```
+
+Identical to the gas. This is not a coincidence but a consequence of §8: the kernel cannot
+branch on an encrypted value, so it runs the same circuit whatever the values are.
+
+The consequence is a privacy property in its own right, and one that encryption alone does not
+provide. **An observer who measures the cost of a clearing learns nothing about the book.** A
+matching engine that cost more on a large order would leak size through its receipt, and no
+amount of ciphertext would fix that.
+
 ### Capacity
 
 | Budget | Orders at 12 levels |

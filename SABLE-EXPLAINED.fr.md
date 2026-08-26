@@ -447,6 +447,25 @@ clear(ordres) = 778 955 + 2 058 509·ordres          à 12 niveaux de prix
 L'ordonnée à l'origine est corroborée indépendamment : les termes du modèle du noyau
 indépendants du nombre d'ordres donnent 759 400, soit 2,6 % d'écart.
 
+### Aucun canal auxiliaire par le gas
+
+L'appariement coûte le même prix quel que soit le contenu du carnet. Deux exécutions sur 6 ordres
+et 12 niveaux, dont les carnets n'ont aucune limite ni aucune taille en commun :
+
+```
+e2e contrat      102x60, 101x40, 100x20, 99x30, 100x30, 101x25   ->  13 130 028 gas
+run agents       103x37, 101x28,  99x20, 98x20, 100x35, 101x10   ->  13 130 028 gas
+```
+
+Identique au gas près. Ce n'est pas une coïncidence mais une conséquence du §8 : le noyau ne peut
+pas brancher sur une valeur chiffrée, il exécute donc le même circuit quelles que soient les
+valeurs.
+
+La portée est une propriété de confidentialité à part entière, que le chiffrement seul ne donne
+pas. **Un observateur qui mesure le coût d'un appariement n'apprend rien du carnet.** Un moteur
+qui coûterait plus cher sur un gros ordre trahirait la taille par son reçu, et aucune quantité de
+ciphertext n'y remédierait.
+
 ### Capacité
 
 | Budget | Ordres à 12 niveaux |

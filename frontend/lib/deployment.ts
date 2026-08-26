@@ -10,8 +10,8 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://testnet.coti.
 export const EXPLORER = "https://testnet.cotiscan.io"
 export const CHAIN_ID = 7082400
 
-export const CROSS_ADDRESS = process.env.NEXT_PUBLIC_CROSS ?? "0x48E8f6253606f1A728028e2fe1bd15C5FE054FE3"
-export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0xe721782E29bd6A987E257EEcabf776e6eA1278aB"
+export const CROSS_ADDRESS = process.env.NEXT_PUBLIC_CROSS ?? "0x0B80999a68F3Eee6735C36F949f952b36AB244ee"
+export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0x962C3D5Cfec9eBFA878ca9890FB48118338fCa7E"
 
 /**
  * Where someone goes after the page convinces them.

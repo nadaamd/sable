@@ -125,6 +125,16 @@ async function stageSetup(wallets: Wallet[], state: State) {
   )
   await c.waitForDeployment()
   state.cross = await c.getAddress()
+  /*
+   * A fresh deployment invalidates every field that tracked progress against the old one.
+   *
+   * Enumerating those fields by name got this wrong twice: first `submitted`, whose stale value
+   * made the submit loop skip and clear() revert on an empty batch, then the same trap in two sibling harnesses. So this
+   * keeps the deployment addresses and drops everything else, which cannot go stale by omission.
+   */
+  for (const k of Object.keys(state) as Array<keyof State>) {
+    if (!["base", "quote", "cross"].includes(k)) delete state[k]
+  }
 
   const maxOrders = Number(await c.MAX_ORDERS())
   state.maxOrders = maxOrders

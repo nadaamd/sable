@@ -94,6 +94,21 @@ async function cross(state: State, signer: Wallet) {
 }
 
 async function stageSetup(wallets: Wallet[], state: State) {
+  /*
+   * Start from nothing. `setup` writes every address and every baseline itself, so whatever is
+   * already in the file is progress against a deployment this run is about to replace.
+   *
+   * Enumerating the fields to clear got this wrong twice: first `submitted`, whose stale value
+   * made the submit loop skip so clear() reverted on an empty batch, then `plans`, which had the
+   * desks reuse a decision taken against an RFQ round that no longer existed. A keep-list has the
+   * same failure mode by omission, so there is no list.
+   *
+   * This runs before anything is deployed or persisted. Placed later, a failed deploy could leave
+   * new token addresses on disk beside an old cross and a stale counter, which is the exact state
+   * the reset exists to prevent.
+   */
+  for (const k of Object.keys(state) as Array<keyof State>) delete state[k]
+
   const deployer = wallets[0]
   const Token = await hre.ethers.getContractFactory("TestToken")
 
@@ -125,16 +140,6 @@ async function stageSetup(wallets: Wallet[], state: State) {
   )
   await c.waitForDeployment()
   state.cross = await c.getAddress()
-  /*
-   * A fresh deployment invalidates every field that tracked progress against the old one.
-   *
-   * Enumerating those fields by name got this wrong twice: first `submitted`, whose stale value
-   * made the submit loop skip and clear() revert on an empty batch, then the same trap in two sibling harnesses. So this
-   * keeps the deployment addresses and drops everything else, which cannot go stale by omission.
-   */
-  for (const k of Object.keys(state) as Array<keyof State>) {
-    if (!["base", "quote", "cross"].includes(k)) delete state[k]
-  }
 
   const maxOrders = Number(await c.MAX_ORDERS())
   state.maxOrders = maxOrders

@@ -76,6 +76,21 @@ async function tokens(state: State) {
 // ------------------------------------------------------------------------ stages
 
 async function stageSetup(wallets: Wallet[], state: State) {
+  /*
+   * Start from nothing. `setup` writes every address and every baseline itself, so whatever is
+   * already in the file is progress against a deployment this run is about to replace.
+   *
+   * Enumerating the fields to clear got this wrong twice: first `submitted`, whose stale value
+   * made the submit loop skip so clear() reverted on an empty batch, then `plans`, which had the
+   * desks reuse a decision taken against an RFQ round that no longer existed. A keep-list has the
+   * same failure mode by omission, so there is no list.
+   *
+   * This runs before anything is deployed or persisted. Placed later, a failed deploy could leave
+   * new token addresses on disk beside an old cross and a stale counter, which is the exact state
+   * the reset exists to prevent.
+   */
+  for (const k of Object.keys(state) as Array<keyof State>) delete state[k]
+
   const deployer = wallets[0]
 
   console.log(`\n[setup] tokens`)
@@ -112,16 +127,6 @@ async function stageSetup(wallets: Wallet[], state: State) {
   })
   await cross.waitForDeployment()
   state.cross = await cross.getAddress()
-  /*
-   * A fresh deployment invalidates every field that tracked progress against the old one.
-   *
-   * Enumerating those fields by name got this wrong twice: first `submitted`, whose stale value
-   * made the submit loop skip and clear() revert on an empty batch, then `plans`, which made the desks reuse a decision taken against a RFQ round that no longer existed. So this
-   * keeps the deployment addresses and drops everything else, which cannot go stale by omission.
-   */
-  for (const k of Object.keys(state) as Array<keyof State>) {
-    if (!["base", "quote", "cross", "messaging"].includes(k)) delete state[k]
-  }
   writeState(state)
   console.log(`  cross ${state.cross}`)
 
@@ -142,6 +147,20 @@ async function stageSetup(wallets: Wallet[], state: State) {
 }
 
 async function stageRfq(wallets: Wallet[], state: State) {
+  /*
+   * Idempotent, because a re-run is not harmless here.
+   *
+   * `rfqDone` was written and never read, so re-running this stage after a mid-loop failure
+   * re-broadcast from the desks that had already sent. `readIois()` in the submit stage would
+   * then count each IOI twice, inflating every desk's view of counterparty interest and changing
+   * the book it plans. The assertions would still pass, because the reference engine derives its
+   * expectations from the recorded plans: a green run over a book nobody intended.
+   */
+  if (state.rfqDone) {
+    console.log(`\n[rfq] already sent in epoch ${state.rfqEpoch}, skipping`)
+    return
+  }
+
   const desks = await buildDesks(wallets, state)
   const Messaging = await hre.ethers.getContractFactory("DeskMessaging")
   const messaging = Messaging.attach(state.messaging!) as any

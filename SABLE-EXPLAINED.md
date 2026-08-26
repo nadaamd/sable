@@ -428,8 +428,8 @@ The intercept is independently corroborated — the kernel model's order-indepen
 
 ### No side channel through gas
 
-Clearing costs the same regardless of what the book contains. Two runs on 6 orders over 12
-levels, with no limit or size in common between their books:
+Clearing costs the same regardless of the *values* in the book. Two runs on 6 orders over 12
+levels, with no order in common between their books:
 
 ```
 contract e2e     102x60, 101x40, 100x20, 99x30, 100x30, 101x25   ->  13,130,028 gas
@@ -439,8 +439,12 @@ agent run        103x37, 101x28,  99x20, 98x20, 100x35, 101x10   ->  13,130,028 
 Identical to the gas. This is not a coincidence but a consequence of §8: the kernel cannot
 branch on an encrypted value, so it runs the same circuit whatever the values are.
 
-The consequence is a privacy property in its own right, and one that encryption alone does not
-provide. **An observer who measures the cost of a clearing learns nothing about the book.** A
+Note what the claim is and is not. The cost model above is linear in order count, so a receipt
+does reveal how many orders cleared and over how many levels — both of which are public anyway
+(§7). What it does not reveal is any side, limit or size. **A receipt discloses nothing beyond
+what the batch already publishes.**
+
+That is a privacy property in its own right, and one encryption alone does not provide. A
 matching engine that cost more on a large order would leak size through its receipt, and no
 amount of ciphertext would fix that.
 

@@ -449,8 +449,8 @@ indépendants du nombre d'ordres donnent 759 400, soit 2,6 % d'écart.
 
 ### Aucun canal auxiliaire par le gas
 
-L'appariement coûte le même prix quel que soit le contenu du carnet. Deux exécutions sur 6 ordres
-et 12 niveaux, dont les carnets n'ont aucune limite ni aucune taille en commun :
+L'appariement coûte le même prix quelles que soient les *valeurs* du carnet. Deux exécutions sur
+6 ordres et 12 niveaux, dont les carnets n'ont aucun ordre en commun :
 
 ```
 e2e contrat      102x60, 101x40, 100x20, 99x30, 100x30, 101x25   ->  13 130 028 gas
@@ -461,10 +461,14 @@ Identique au gas près. Ce n'est pas une coïncidence mais une conséquence du �
 pas brancher sur une valeur chiffrée, il exécute donc le même circuit quelles que soient les
 valeurs.
 
-La portée est une propriété de confidentialité à part entière, que le chiffrement seul ne donne
-pas. **Un observateur qui mesure le coût d'un appariement n'apprend rien du carnet.** Un moteur
-qui coûterait plus cher sur un gros ordre trahirait la taille par son reçu, et aucune quantité de
-ciphertext n'y remédierait.
+Attention à la portée exacte. Le modèle de coût ci-dessus est linéaire en nombre d'ordres : un
+reçu révèle donc combien d'ordres ont été appariés et sur combien de niveaux — deux informations
+déjà publiques (§7). Ce qu'il ne révèle pas, c'est un sens, une limite ou une taille. **Un reçu
+ne divulgue rien au-delà de ce que l'enchère publie déjà.**
+
+C'est une propriété de confidentialité à part entière, que le chiffrement seul ne donne pas. Un
+moteur qui coûterait plus cher sur un gros ordre trahirait la taille par son reçu, et aucune
+quantité de ciphertext n'y remédierait.
 
 ### Capacité
 

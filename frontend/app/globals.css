@@ -207,6 +207,131 @@ body {
 }
 
 /*
+ * ---------------------------------------------------------------- motion ----
+ *
+ * All of it is CSS. The landing is a Server Component that ships no JavaScript, and none of these
+ * effects is worth giving that up for.
+ *
+ * Everything scroll-driven sits behind `@supports (animation-timeline: view())`, so where it is
+ * unsupported the content is simply visible. That is deliberate: a reveal that fails leaves
+ * sections at opacity 0, and an invisible page is a worse failure than an unanimated one.
+ *
+ * Durations follow the reference: 0.2s for interface response, longer only for entrances.
+ */
+
+/* Anchor jumps ease instead of teleporting. The reference smooths the wheel itself with a
+   library; that costs JavaScript on a static page, so it is not done here. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* The hero's display lines arrive in sequence rather than as a slab. */
+@media (prefers-reduced-motion: no-preference) {
+  .enter > * {
+    animation: enter 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .enter > *:nth-child(1) { animation-delay: 40ms; }
+  .enter > *:nth-child(2) { animation-delay: 130ms; }
+  .enter > *:nth-child(3) { animation-delay: 220ms; }
+  .enter > *:nth-child(4) { animation-delay: 310ms; }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * The staggered children of a revealed block: steps, figures, list items.
+ *
+ * Each child gets its own view() timeline, so a four-step list arrives one step at a time as it
+ * crosses the viewport rather than all at once.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .stagger > * {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 60%;
+    }
+  }
+}
+
+/*
+ * The decryption, animated. The one effect here that carries meaning rather than polish.
+ *
+ * Two layers stacked in the same cell: the sealed glyphs and the decrypted value. As the legend
+ * enters view the glyphs fade out and the value fades in, so a visitor watches the thing the
+ * product does instead of reading that it happens.
+ *
+ * The blur is what makes it read as decryption rather than as a crossfade — illegible resolving
+ * into legible.
+ */
+.decrypt {
+  display: grid;
+}
+
+.decrypt > * {
+  grid-area: 1 / 1;
+}
+
+/*
+ * The sealed layer is hidden by default and only shown BY the animation.
+ *
+ * Stacked at full opacity both layers paint over each other and the glyphs sit across the digits,
+ * which is illegible. So the readable state is the default and the animation is what reveals the
+ * sealed layer first: `animation-fill-mode: both` applies the 0% keyframe before the scroll range
+ * begins. Where scroll-driven animation is unsupported, nothing runs and the value is simply
+ * there.
+ */
+.decrypt > .sealed {
+  opacity: 0;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .decrypt > .sealed {
+      animation: seal-out linear both;
+      animation-timeline: view();
+      animation-range: entry 25% entry 70%;
+    }
+
+    .decrypt > .plain {
+      animation: seal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 25% entry 70%;
+    }
+  }
+}
+
+@keyframes seal-out {
+  0%, 45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes seal-in {
+  0%, 45% {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/*
  * Sections rise into view on scroll, driven by CSS rather than JavaScript.
  *
  * `animation-timeline: view()` degrades to nothing where it is unsupported, so the content is

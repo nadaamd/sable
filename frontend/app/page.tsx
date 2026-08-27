@@ -86,6 +86,7 @@ const BUTTON_LIGHT: React.CSSProperties = {
   color: "var(--chrome)",
   padding: "0.9rem 1.6rem",
   fontSize: "16px",
+  transition: "background-color 200ms ease, transform 200ms ease",
 }
 
 export default function Landing() {
@@ -93,7 +94,7 @@ export default function Landing() {
     <main className={`${displaySerif.variable} ${bodySans.variable} editorial`}>
       {/* ------------------------------------------------- hero, on plum ------ */}
       <section className="band band-chrome" style={{ paddingBlock: "4.5rem" }}>
-        <div className="band-inner flex flex-col gap-10">
+        <div className="band-inner enter flex flex-col gap-10">
           <div className="flex items-center gap-4">
             <Mark size={30} />
             <span className="eyebrow">The confidential cross</span>
@@ -137,7 +138,7 @@ export default function Landing() {
       {/* ------------------------------------------------- problem ------------ */}
       <Band eyebrow="The problem">
         <h2 className="display display-m max-w-[24ch]">Being seen is what costs you.</h2>
-        <div className="grid gap-8 sm:grid-cols-2">
+        <div className="stagger grid gap-8 sm:grid-cols-2">
           <p className="text-[16px] leading-relaxed text-[var(--dim)]">
             On a transparent venue your order is readable before it settles, so the price moves
             against you first. Private relays and commit schemes narrow the window; they do not
@@ -155,7 +156,7 @@ export default function Landing() {
       {/* ------------------------------------------------- how ---------------- */}
       <Band eyebrow="How it works">
         <h2 className="display display-m max-w-[26ch]">Four steps, none of them readable.</h2>
-        <div className="flex flex-col gap-9">
+        <div className="stagger flex flex-col gap-9">
           <Step
             n="01"
             title="Desks negotiate, encrypted"
@@ -181,13 +182,13 @@ export default function Landing() {
 
       {/* ------------------------------------------------- legend ------------- */}
       <Band eyebrow="What a row looks like">
-        <Primer label="Stored, then decrypted" />
+        <Primer label="Stored, then decrypted" animate />
       </Band>
 
       {/* ------------------------------------------------- proof, on peach ---- */}
       <Band tone="peach" eyebrow="Measured, not claimed">
         <h2 className="display display-m max-w-[24ch]">Every number here came off the chain.</h2>
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="stagger grid gap-10 sm:grid-cols-3">
           <Figure
             value="101"
             label="Clearing price"
@@ -213,7 +214,7 @@ export default function Landing() {
 
       {/* ------------------------------------------------- disclosure --------- */}
       <Band eyebrow="Disclosure surface">
-        <div className="grid gap-10 sm:grid-cols-2">
+        <div className="stagger grid gap-10 sm:grid-cols-2">
           <div className="flex flex-col gap-3">
             <h3 className="text-[20px]">Public</h3>
             <ul className="flex flex-col gap-2 text-[16px] text-[var(--dim)]">

@@ -160,6 +160,38 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
+### Motion
+
+All CSS. The landing is a Server Component that ships no JavaScript, and none of these effects is
+worth giving that up for.
+
+| Effect | Where | Driver |
+|---|---|---|
+| `.enter` | hero, on load | keyframes with a 40/130/220/310ms stagger |
+| `.rise` | each band, on scroll | `animation-timeline: view()` |
+| `.stagger` | steps, figures, lists | one `view()` timeline per child |
+| `.decrypt` | the legend | sealed glyphs fade out, the value fades in out of blur |
+| transitions | buttons, links | 200ms, matching the reference |
+
+`.decrypt` is the one that carries meaning rather than polish: the legend performs the decryption
+it describes, and the blur is what makes it read as illegible-resolving-into-legible rather than a
+crossfade.
+
+Two rules that must survive any edit:
+
+- Every scroll-driven animation sits behind `@supports (animation-timeline: view())` **and**
+  `prefers-reduced-motion: no-preference`. Where unsupported, nothing runs and the content is
+  visible. A reveal that fails leaves sections at `opacity: 0`, and an invisible page is a worse
+  failure than an unanimated one.
+- `.decrypt > .sealed { opacity: 0 }` sits **outside** those guards. Both layers share one grid
+  cell, so at full opacity the glyphs paint across the digits. The readable state is the default;
+  the animation is what reveals the sealed layer, via `animation-fill-mode: both` applying the 0%
+  keyframe before the scroll range begins.
+
+The reference smooths the wheel itself with a library and floats an ambient background gradient on
+a 20s loop. Neither is here: the first costs JavaScript on a static page (`scroll-behavior: smooth`
+covers anchor jumps for free), and the second carries no information.
+
 ### Two registers
 
 The landing and the terminal use different type on purpose. The landing is editorial and follows a

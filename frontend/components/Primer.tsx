@@ -32,7 +32,42 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
   )
 }
 
-export function Primer({ label = "How to read this page" }: { label?: string | null }) {
+/**
+ * A decrypted value that arrives by decrypting.
+ *
+ * Two layers in one grid cell: the sealed glyphs on top, the value underneath. Scroll-driven CSS
+ * fades the first out and the second in, out of blur, so the legend performs the thing it
+ * describes. Without the animation both layers are simply present and the value wins, so nothing
+ * is hidden if the effect never runs.
+ */
+function Reveal({
+  width,
+  animate,
+  children,
+}: {
+  width: number
+  animate?: boolean
+  children: React.ReactNode
+}) {
+  if (!animate) return <>{children}</>
+  return (
+    <span className="decrypt">
+      <span className="sealed" aria-hidden>
+        {"█".repeat(width)}
+      </span>
+      <span className="plain">{children}</span>
+    </span>
+  )
+}
+
+export function Primer({
+  label = "How to read this page",
+  animate = false,
+}: {
+  label?: string | null
+  /** Landing only: play the sealed-to-decrypted transition as the legend scrolls into view. */
+  animate?: boolean
+}) {
   return (
     <div className="panel">
       {label !== null && (
@@ -71,10 +106,20 @@ export function Primer({ label = "How to read this page" }: { label?: string | n
           <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
             <Cell label="desk">Atlas</Cell>
             <Cell label="side">
-              <span style={{ color: "var(--buy)" }}>BUY</span>
+              <Reveal width={4} animate={animate}>
+                <span style={{ color: "var(--buy)" }}>BUY</span>
+              </Reveal>
             </Cell>
-            <Cell label="limit">103</Cell>
-            <Cell label="size">37</Cell>
+            <Cell label="limit">
+              <Reveal width={5} animate={animate}>
+                103
+              </Reveal>
+            </Cell>
+            <Cell label="size">
+              <Reveal width={6} animate={animate}>
+                37
+              </Reveal>
+            </Cell>
           </div>
         </div>
       </div>

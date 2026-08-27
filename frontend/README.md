@@ -199,7 +199,16 @@ reference design (ricardochance.com): **Instrument Serif** display over **Red Ha
 its 11/16/20/24/32/48/80/140 scale, and scroll-driven reveals. The terminal is an instrument and
 keeps **IBM Plex**.
 
-Two things to know before touching it:
+One trap, which cost a deploy: **do not compose these variables on `:root`.**
+
+`next/font` declares `--font-display-src` on the element carrying its generated class, which here
+is `<main>`. A custom property is substituted where it is *declared*, so writing
+`--font-display: var(--font-display-src), Georgia` at `:root` made that declaration invalid at
+computed-value time — `--font-display` became guaranteed-invalid, inherited as invalid, and the
+landing silently rendered in Plex. No error, no warning, the wrong typeface. The `.editorial`
+rules reference `--font-*-src` directly instead, on the element that actually has it.
+
+Two more things to know before touching it:
 
 - Instrument Serif is named in the slop catalogue below as an overused face. Using it is a knowing
   trade for the reference look, taken deliberately, and it is confined to the landing.

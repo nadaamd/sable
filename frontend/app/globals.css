@@ -72,12 +72,14 @@
     monospace;
 
   /*
-   * The landing's pair. Scoped by the .editorial class, not applied globally: the terminal is an
-   * instrument and keeps Plex, so the two routes read as two registers rather than one confused
-   * one.
+   * The landing's pair is NOT composed here.
+   *
+   * `--font-display-src` is declared by next/font on <main>, not on :root. A custom property is
+   * substituted where it is DECLARED, so composing `var(--font-display-src), Georgia` at :root
+   * made the declaration invalid at computed-value time: the whole variable became
+   * guaranteed-invalid and the landing silently rendered in Plex. The fonts are referenced
+   * directly in the .editorial rules below, on the element that actually carries the variable.
    */
-  --font-display: var(--font-display-src), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-body-src), var(--font-sans);
 }
 
 * {
@@ -103,11 +105,11 @@ body {
  * thing a fixed 140px gets wrong.
  */
 .editorial {
-  font-family: var(--font-body);
+  font-family: var(--font-body-src), var(--font-sans);
 }
 
 .editorial .display {
-  font-family: var(--font-display);
+  font-family: var(--font-display-src), Georgia, "Times New Roman", serif;
   font-weight: 400;
   line-height: 0.95;
   letter-spacing: -0.02em;

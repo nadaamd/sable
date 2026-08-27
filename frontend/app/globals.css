@@ -115,6 +115,141 @@ body {
   letter-spacing: -0.02em;
 }
 
+/*
+ * The hero, measured off the reference rather than estimated.
+ *
+ *   section    min-height 100vh, flex column, justify-between
+ *              padding  pt 16 / px 32 / pb 40      base
+ *                       pt 24 / px 48              >= 768
+ *                              px 64               >= 1024
+ *                              px 80               >= 1280
+ *                       pt 40 / px 96 / pb 80      >= 1440
+ *                       pt 80 / px 120 / pb 120    >= 1680
+ *   title      48px / 64px >= 768 / 80px >= 1680, line-height .9em, italic
+ *              max-width 320px / 480px >= 768 / 600px >= 1680
+ *   label      12px above the title (gap-3)
+ *   bottom     buttons left, description right, bottom-aligned, justify-between >= 1024
+ *   buttons    pills: radius 1000px, h 40 -> 48, px 16 -> 24
+ *   descrip.   360px wide, justified
+ *
+ * The reference offsets the hero by an 80px fixed navbar (`100vh - 80px` plus a matching top
+ * margin). This page has no navbar, so reproducing that would only add dead space; the height is
+ * a plain 100vh and the reference's own top padding does the breathing.
+ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 32px 40px;
+}
+
+.hero-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hero-title {
+  font-style: italic;
+  font-size: 48px;
+  line-height: 0.9em;
+  max-width: 320px;
+}
+
+.hero-bottom {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hero-desc {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Pills, as the reference draws them. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding-inline: 16px;
+  border-radius: 1000px;
+  font-size: 15px;
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    padding-top: 24px;
+    padding-inline: 48px;
+  }
+
+  .hero-title {
+    font-size: 64px;
+    max-width: 480px;
+  }
+
+  .pill {
+    height: 48px;
+    padding-inline: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    padding-inline: 64px;
+  }
+
+  .hero-bottom {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .hero-actions {
+    gap: 16px;
+  }
+
+  .hero-desc {
+    text-align: justify;
+    hyphens: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero {
+    padding-inline: 80px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .hero {
+    padding-top: 40px;
+    padding-inline: 96px;
+    padding-bottom: 80px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .hero {
+    padding-top: 80px;
+    padding-inline: 120px;
+    padding-bottom: 120px;
+  }
+
+  .hero-title {
+    font-size: 80px;
+    max-width: 600px;
+  }
+}
+
 .display-xl {
   font-size: clamp(56px, 15vw, 140px);
 }

@@ -27,6 +27,9 @@ import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
 const displaySerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
+  // The reference sets its hero in the italic. Loading the real italic face matters: without it
+  // the browser synthesises an oblique by shearing the roman, which in a serif looks wrong.
+  style: ["normal", "italic"],
   display: "swap",
   variable: "--font-display-src",
 })
@@ -81,56 +84,55 @@ function Figure({ value, label, note }: { value: string; label: string; note: st
   )
 }
 
+/** Fill only: .pill owns height, padding and radius so both buttons match the reference. */
 const BUTTON_LIGHT: React.CSSProperties = {
   background: "var(--accent)",
   color: "var(--chrome)",
-  padding: "0.9rem 1.6rem",
-  fontSize: "16px",
-  transition: "background-color 200ms ease, transform 200ms ease",
 }
 
 export default function Landing() {
   return (
     <main className={`${displaySerif.variable} ${bodySans.variable} editorial`}>
       {/* ------------------------------------------------- hero, on plum ------ */}
-      <section className="band band-chrome" style={{ paddingBlock: "4.5rem" }}>
-        <div className="band-inner enter flex flex-col gap-10">
+      {/*
+        Geometry copied from the reference: full-viewport section, label and title at the top,
+        actions and description pushed to the bottom and spread apart. See .hero in globals.css
+        for the measured paddings and sizes.
+      */}
+      <section className="band-chrome hero">
+        <div className="hero-top enter">
           <div className="flex items-center gap-4">
-            <Mark size={30} />
+            <Mark size={26} />
             <span className="eyebrow">The confidential cross</span>
           </div>
 
-          <h1 className="display display-xl">
-            A market that
-            <br />
-            cannot read
-            <br />
-            its own book.
+          <h1 className="display hero-title">
+            A market that cannot read its own{" "}
+            <span style={{ opacity: 0.6 }}>book</span>.
           </h1>
+        </div>
 
-          <p className="max-w-[52ch] text-[18px] leading-relaxed sm:text-[20px]">
-            Orders arrive encrypted and stay that way. The clearing price is computed without
-            decrypting a single one of them, by a contract nobody can see inside, us included.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <Link href="/terminal" className="hover:!no-underline" style={BUTTON_LIGHT}>
-              See it in action →
+        <div className="hero-bottom">
+          <div className="hero-actions">
+            <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
+              See it in action
             </Link>
             <a
               href={EXPLAINER_URL}
               target="_blank"
               rel="noreferrer"
-              className="band-border hover:!no-underline"
-              style={{
-                border: "1px solid",
-                padding: "0.9rem 1.6rem",
-                fontSize: "16px",
-                color: "var(--chrome-ink)",
-              }}
+              className="pill band-border hover:!no-underline"
+              style={{ border: "1px solid", color: "var(--chrome-ink)" }}
             >
               How it works ↗
             </a>
+          </div>
+
+          <div className="hero-desc">
+            <p className="text-[15px] leading-relaxed opacity-80">
+              Orders arrive encrypted and stay that way. The clearing price is computed without
+              decrypting a single one of them, by a contract nobody can see inside, us included.
+            </p>
           </div>
         </div>
       </section>
@@ -248,8 +250,8 @@ export default function Landing() {
             makes its confidentiality a property of the chain rather than of this page.
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/terminal" className="hover:!no-underline" style={BUTTON_LIGHT}>
-              Open the terminal →
+            <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
+              Open the terminal
             </Link>
             <span className="text-[14px] opacity-70">Read-only. COTI testnet.</span>
           </div>

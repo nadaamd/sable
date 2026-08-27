@@ -160,6 +160,26 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
+### Hero geometry
+
+Measured off the reference rather than estimated, and documented at `.hero` in `globals.css`:
+
+| | |
+|---|---|
+| Section | `min-height: 100vh`, flex column, `justify-content: space-between` |
+| Padding | pt 16 / px 32 / pb 40 → pt 24 / px 48 (768) → px 64 (1024) → px 80 (1280) → pt 40 / px 96 / pb 80 (1440) → pt 80 / px 120 / pb 120 (1680) |
+| Title | 48px → 64px (768) → 80px (1680), `line-height: .9em`, **italic** |
+| Title measure | 320px → 480px (768) → 600px (1680) |
+| Label | 12px above the title |
+| Bottom row | buttons left, description right, bottom-aligned, `justify-between` from 1024 |
+| Buttons | pills, radius 1000px, h 40 → 48, px 16 → 24 |
+| Description | 360px, justified from 1024 |
+
+Two deliberate divergences. The reference offsets its hero by an 80px fixed navbar (`100vh - 80px`
+plus a matching top margin); this page has no navbar, so that would only add dead space and the
+height is a plain `100vh`. And the italic is a real loaded face (`style: ["normal", "italic"]`) —
+without it the browser shears the roman, which in a serif looks wrong.
+
 ### Motion
 
 All CSS. The landing is a Server Component that ships no JavaScript, and none of these effects is

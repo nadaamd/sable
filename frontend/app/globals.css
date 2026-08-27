@@ -346,8 +346,9 @@ body {
 /*
  * ---------------------------------------------------------------- motion ----
  *
- * All of it is CSS. The landing is a Server Component that ships no JavaScript, and none of these
- * effects is worth giving that up for.
+ * All of it is CSS, which is worth it on its own terms: no effect here needs a frame loop or a
+ * scroll listener. (The landing does load JavaScript — `next/link` and the dust canvas — so this
+ * is not about keeping the route script-free, which it never was.)
  *
  * Everything scroll-driven sits behind `@supports (animation-timeline: view())`, so where it is
  * unsupported the content is simply visible. That is deliberate: a reveal that fails leaves

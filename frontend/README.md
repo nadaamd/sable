@@ -11,7 +11,7 @@ into numbers while every other row stays █.
 
 | Route | What it is |
 |---|---|
-| `/` | Landing. A Server Component with no state and no chain reads, so it ships no JavaScript and has no loading frame. One screen: the claim, the sealed-versus-decrypted legend, and a button. |
+| `/` | Landing. A Server Component with no state and no chain reads, so it has no loading frame and prerenders. Not script-free: `next/link` is a client component and the dust canvas is another. Production JS: **563 KB / 8 chunks**, against **1,632 KB / 9** for the terminal. |
 | `/terminal` | The live book. Client-rendered, polls every 8s. |
 
 Live data sits behind the button, which is the reason the button exists. Both routes render the
@@ -160,6 +160,22 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
+### The dust
+
+One canvas behind the hero, `components/Dust.tsx`, and the only decoration on the site. The
+reference gets its ambience from two radial gradients whose `background-position` drifts over 20s;
+those are rules 24 and 25 of the catalogue below, so this does the same job with motes that drift
+and part around the cursor.
+
+It is atmosphere rather than information, which is the opposite of the discipline everything else
+here follows, so it is boxed in:
+
+- `prefers-reduced-motion` draws one static frame and never starts the loop.
+- The loop stops when the hero leaves the viewport and when the tab is hidden.
+- Particle count scales with viewport area, capped at 90.
+- `pointer-events: none` and `aria-hidden`: it cannot intercept a click or reach a screen reader.
+- The landing's only client component. It does not exist on the terminal.
+
 ### Hero geometry
 
 Measured off the reference rather than estimated, and documented at `.hero` in `globals.css`:
@@ -182,8 +198,9 @@ without it the browser shears the roman, which in a serif looks wrong.
 
 ### Motion
 
-All CSS. The landing is a Server Component that ships no JavaScript, and none of these effects is
-worth giving that up for.
+All CSS, which is worth it on its own terms: no effect here needs a frame loop or a scroll
+listener. (The route does load JavaScript — `next/link`, and the dust canvas — so this is not
+about keeping it script-free, which it never was.)
 
 | Effect | Where | Driver |
 |---|---|---|

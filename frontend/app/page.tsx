@@ -1,5 +1,6 @@
 import { Instrument_Serif, Red_Hat_Display } from "next/font/google"
 import Link from "next/link"
+import { Dust } from "@/components/Dust"
 import { Mark } from "@/components/Mark"
 import { Primer } from "@/components/Primer"
 import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
@@ -7,8 +8,13 @@ import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
 /**
  * The landing page.
  *
- * A Server Component: no state, no chain reads, so it ships no JavaScript and has no loading
- * frame. Live data sits behind the button, which is the reason the button exists.
+ * A Server Component: no state and no chain reads, so it has no loading frame and its sections
+ * are prerendered. Live data sits behind the button, which is the reason the button exists.
+ *
+ * It is NOT JavaScript-free, and earlier comments here claimed it was. `next/link` is a client
+ * component and the App Router ships its runtime regardless, so the route always carried client
+ * JS; the dust adds a canvas on top. Measured in production: 563 KB across 8 chunks for the
+ * landing against 1,632 KB for the terminal.
  *
  * Typography and section rhythm follow the reference design nada chose (ricardochance.com):
  * Instrument Serif display over Red Hat Display body, its 11/16/20/24/32/48/80/140 scale,
@@ -99,8 +105,11 @@ export default function Landing() {
         actions and description pushed to the bottom and spread apart. See .hero in globals.css
         for the measured paddings and sizes.
       */}
-      <section className="band-chrome hero">
-        <div className="hero-top enter">
+      <section className="band-chrome hero" style={{ position: "relative", overflow: "hidden" }}>
+        {/* Behind everything, and the only decoration on the site. See components/Dust.tsx. */}
+        <Dust />
+
+        <div className="hero-top enter" style={{ position: "relative" }}>
           <div className="flex items-center gap-4">
             <Mark size={26} />
             <span className="eyebrow">The confidential cross</span>
@@ -112,7 +121,7 @@ export default function Landing() {
           </h1>
         </div>
 
-        <div className="hero-bottom">
+        <div className="hero-bottom" style={{ position: "relative" }}>
           <div className="hero-actions">
             <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
               See it in action

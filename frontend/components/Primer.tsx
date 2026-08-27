@@ -1,7 +1,7 @@
 /*
  * No "use client": this renders no state and handles no events, so it stays a Server Component
- * and the landing page ships no JavaScript for it. The terminal imports it too, where it simply
- * becomes part of that route's client bundle.
+ * and adds nothing to the landing's client bundle. The terminal imports it too, where it simply
+ * becomes part of that route's bundle.
  */
 /**
  * The page has to be legible in three seconds, before anyone reads a sentence.

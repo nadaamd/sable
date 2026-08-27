@@ -187,6 +187,28 @@ here follows, so it is boxed in:
 - `pointer-events: none` and `aria-hidden`: it cannot intercept a click or reach a screen reader.
 - The landing's only client component. It does not exist on the terminal.
 
+### Grain
+
+A fixed full-screen layer over the landing, `.grain` in `globals.css`. The reference tiles a
+`noise.png`; the texture here is generated with an SVG `feTurbulence` as a data URI, so there is no
+extra request, no binary asset and nothing taken from their server.
+
+`soft-light` at 6%, not the reference's `multiply` — the one place fidelity lost, on purpose.
+Multiply only darkens, so it eats contrast in one direction. Measured on the tightest pair on the
+page, Light Bronze on chrome at 4.79:1:
+
+| Grain | Worst-case ratio |
+|---|---|
+| `multiply` 4.5% | **4.54** — 0.04 from failing AA |
+| `soft-light` 6% | 4.63 |
+
+Soft-light works symmetrically around mid-grey, so a heavier and more visible grain costs less
+than a lighter multiply. Every text pair was re-checked at 6% against a worst-case grain pixel;
+the tightest sits at 4.63.
+
+Scoped to the landing: `mix-blend-mode` on a fixed full-screen layer forces everything beneath it
+into a blending context, and the terminal repaints on an 8s poll.
+
 ### Hero geometry
 
 Measured off the reference rather than estimated, and documented at `.hero` in `globals.css`:

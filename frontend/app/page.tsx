@@ -283,6 +283,13 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/*
+        Film grain, above everything and untouchable. Landing only: mix-blend-mode on a fixed
+        full-screen layer forces what is beneath it into a blending context, and the terminal
+        repaints on a poll.
+      */}
+      <div className="grain" aria-hidden />
     </main>
   )
 }

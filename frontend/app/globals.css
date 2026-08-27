@@ -344,6 +344,35 @@ body {
 }
 
 /*
+ * Film grain over the whole landing.
+ *
+ * The reference tiles a noise.png in a fixed div. Same technique, but the texture is generated
+ * here with an SVG `feTurbulence` rather than fetched: no extra request, no binary asset, nothing
+ * borrowed from their server.
+ *
+ * `soft-light`, NOT the reference's `multiply`, and that is the one place fidelity lost. Multiply
+ * only darkens, so it eats contrast in one direction: measured on the tightest pair on this page
+ * (Light Bronze on chrome, 4.79:1) a 4.5% multiply grain took it to 4.54, which is 0.04 from
+ * failing AA. Soft-light works symmetrically around mid-grey, so the same pair holds 4.63 at 6%
+ * — a heavier, more visible grain for a smaller cost. Every text pair was re-checked at this
+ * opacity against a worst-case grain pixel; the tightest sits at 4.63.
+ *
+ * Scoped to the landing. `mix-blend-mode` on a fixed full-screen layer forces everything beneath
+ * it into a blending context, and the terminal repaints on an 8s poll — it does not need that.
+ */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.75'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='saturate'%20values='0'/%3E%3C/filter%3E%3Crect%20width='160'%20height='160'%20filter='url(#n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-position: center center;
+}
+
+/*
  * ---------------------------------------------------------------- motion ----
  *
  * All of it is CSS, which is worth it on its own terms: no effect here needs a frame loop or a

@@ -10,8 +10,9 @@ import "./globals.css";
  * would not, and the sans and mono are siblings: switching between prose and a column of figures
  * does not change the texture of the page.
  *
- * Not Inter, Geist, Space Grotesk or Instrument Serif — those are named in the slop catalogue as
- * the faces that signal a generated site.
+ * Not Inter, Geist or Space Grotesk, which the slop catalogue names as the faces that signal a
+ * generated site. The landing declares its own display pair — see app/page.tsx — so the terminal
+ * never downloads a face it does not use.
  *
  * next/font self-hosts these at build time, so there is no request to Google at runtime, and
  * `adjustFontFallback` matches the fallback's metrics to avoid a shift while they load.

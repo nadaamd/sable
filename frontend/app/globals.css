@@ -70,6 +70,14 @@
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     monospace;
+
+  /*
+   * The landing's pair. Scoped by the .editorial class, not applied globally: the terminal is an
+   * instrument and keeps Plex, so the two routes read as two registers rather than one confused
+   * one.
+   */
+  --font-display: var(--font-display-src), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-body-src), var(--font-sans);
 }
 
 * {
@@ -85,6 +93,72 @@ body {
   -webkit-font-smoothing: antialiased;
   /* The page itself must never scroll sideways; wide content scrolls inside .scroll-x. */
   overflow-x: hidden;
+}
+
+/*
+ * The landing's register.
+ *
+ * Type scale lifted from the reference: 11 / 16 / 18 / 20 / 24 / 32 / 40 / 48 / 64 / 80 / 100 /
+ * 140px. `.display` sizes are fluid so a 140px hero does not overflow a phone, which is the one
+ * thing a fixed 140px gets wrong.
+ */
+.editorial {
+  font-family: var(--font-body);
+}
+
+.editorial .display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.display-xl {
+  font-size: clamp(56px, 15vw, 140px);
+}
+
+.display-l {
+  font-size: clamp(38px, 7vw, 80px);
+}
+
+.display-m {
+  font-size: clamp(28px, 4.5vw, 48px);
+}
+
+/* Small tracked label. The reference tracks these at .12-.14em; small caps can carry it. */
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+/*
+ * Sections rise into view on scroll, driven by CSS rather than JavaScript.
+ *
+ * `animation-timeline: view()` degrades to nothing where it is unsupported, so the content is
+ * simply visible — which is the point. A JS reveal that fails leaves sections at opacity 0, and
+ * an invisible page is a worse failure than an unanimated one.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .rise {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Anything that is a value rather than a sentence, and the way back out. */

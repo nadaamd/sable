@@ -160,6 +160,27 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
+### Two registers
+
+The landing and the terminal use different type on purpose. The landing is editorial and follows a
+reference design (ricardochance.com): **Instrument Serif** display over **Red Hat Display** body,
+its 11/16/20/24/32/48/80/140 scale, and scroll-driven reveals. The terminal is an instrument and
+keeps **IBM Plex**.
+
+Two things to know before touching it:
+
+- Instrument Serif is named in the slop catalogue below as an overused face. Using it is a knowing
+  trade for the reference look, taken deliberately, and it is confined to the landing.
+- The display pair is declared in `app/page.tsx`, not the root layout. Declared in the layout it
+  put all five font files on **every** route, so the terminal fetched a serif it never renders.
+  Scoping the CSS with a class was not enough: the declaration decides what ships. The terminal
+  references 3 font files, the landing 5.
+
+Display sizes are fluid (`clamp`) rather than the reference's fixed pixels — a literal 140px hero
+overflows a phone, which is the one detail of the reference worth not copying.
+
+### The terminal's type
+
 Both are **IBM Plex**, self-hosted by `next/font` (see `app/layout.tsx`). Plex was drawn by IBM
 for technical interfaces and code, so it holds at 13px where a display face would not, and the
 sans and mono are siblings: moving between prose and a column of figures does not change the

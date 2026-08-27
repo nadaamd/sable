@@ -125,12 +125,85 @@ body {
   font-size: clamp(28px, 4.5vw, 48px);
 }
 
+/*
+ * Banded surfaces, which is how the palette gets area rather than accents.
+ *
+ * The first landing used the palette as trim: --accent appeared zero times, --panel-hi once, and
+ * --chrome on two buttons. Five colours, one entirely absent. The page came out neutral with plum
+ * buttons — the same drift that cost the terminal its identity before the chrome went plum.
+ *
+ * So the page alternates surfaces. On Mauve Shadow, Cream (8.84:1), Soft Peach (8.05:1) and Light
+ * Bronze (4.79:1) all clear AA untouched; on Soft Peach, --ink (8.05:1), --dim (4.98:1) and
+ * --accent-deep (5.09:1) do. Both were measured when the terminal's chrome was built.
+ */
+.band {
+  padding-block: 5rem;
+}
+
+.band-chrome {
+  background: var(--chrome);
+  color: var(--chrome-ink);
+}
+
+.band-chrome .eyebrow,
+.band-chrome a {
+  color: var(--accent);
+}
+
+.band-chrome .rule,
+.band-chrome .band-border {
+  border-color: color-mix(in srgb, var(--chrome-ink) 22%, transparent);
+}
+
+.band-peach {
+  background: var(--panel-hi);
+  color: var(--ink);
+}
+
+.band-peach .eyebrow,
+.band-peach a {
+  color: var(--accent-deep);
+}
+
+.band-inner {
+  margin-inline: auto;
+  max-width: 1024px;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .band-inner {
+    padding-inline: 2rem;
+  }
+}
+
+/*
+ * A caption under a figure, coloured per band instead of by opacity.
+ *
+ * `opacity-70` on --ink over Soft Peach measured 3.83:1, under AA, because opacity blends toward
+ * the surface and a light surface has nowhere to go. Naming the colour per band fixes it and
+ * cannot drift when a figure moves between bands.
+ */
+.note {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.band-chrome .note {
+  color: color-mix(in srgb, var(--chrome-ink) 78%, transparent);
+}
+
+.band-peach .note {
+  color: var(--dim);
+}
+
 /* Small tracked label. The reference tracks these at .12-.14em; small caps can carry it. */
 .eyebrow {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--dim);
+  /* Light Bronze darkened: the label is now palette, not grey. */
+  color: var(--accent-deep);
 }
 
 /*

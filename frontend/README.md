@@ -160,20 +160,39 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
-### The hero canvas
+### The scene canvas
 
-One canvas behind the hero, `components/HeroCanvas.tsx`, and the only decoration on the site: a
-wireframe icosahedron turning centre-stage in a field of drifting dust.
+One fixed canvas behind the whole landing, `components/SceneCanvas.tsx`: a wireframe form that
+morphs as you scroll, over dust that fades out with the hero. The reference does this with a
+full-screen three.js "rig" whose geometry is chosen by the section in view; this is the same idea
+in canvas 2D with no library.
 
-The reference runs **two full-screen WebGL canvases** for this — a "rig" scene whose geometry
-changes per section (`data-geometry="star"` on the hero, `"diamond"` on the next) plus a GL
-gradient at 60% opacity, with a `noise.png` grain layer above everything. That is three.js work.
-This gets the same read in canvas 2D with no library: twelve vertices from the golden ratio,
-projected by hand with a perspective divide, edges brightening with depth, tilting toward the
-cursor rather than spinning.
+**Sections declare their shape.** `data-geometry` on a section, an IntersectionObserver picks the
+one with the largest visible *area* (comparing ratios alone lets a short fully-visible section
+outvote the tall one filling the screen, which makes the form flicker on a slow scroll), and the
+vertices ease toward that target.
 
-Both layers share **one** canvas and **one** `requestAnimationFrame` loop. Two components would
-have meant two loops competing for the same frame budget to draw into the same corner. The
+| Shape | Where |
+|---|---|
+| `star` | hero, close |
+| `ico` | the problem, the legend |
+| `diamond` | how it works, disclosure |
+| `ring` | the measured figures |
+
+Every form has **twelve vertices**, all transformations of the same icosahedron. That is what
+makes morphing trivial: vertex *i* always means the same corner, so there is no topology to
+reconcile and the edge list never changes.
+
+**The stroke follows the band.** One canvas crossing opposite backgrounds cannot use one colour:
+Light Bronze reads 4.79:1 on plum but 2.11:1 on the light page, and deep bronze is the mirror
+(2.01:1 on plum, 5.03:1 on light). Sections declare `data-geometry-tone`, and the stroke eases
+between the two along with the geometry.
+
+**Paint order, the fiddly part.** The canvas is `position: fixed; z-index: 2`. An unpositioned
+section paints its background in the block layer, below positioned elements, so the canvas shows
+through the plum and peach bands. Content is lifted to `z-index: 3` by `.band-inner`. Giving a band
+`position: relative` would make it a positioned element and hide the scene — that is the one edit
+that breaks this. The
 reference gets its ambience from two radial gradients whose `background-position` drifts over 20s;
 those are rules 24 and 25 of the catalogue below, so this does the same job with motes that drift
 and part around the cursor.

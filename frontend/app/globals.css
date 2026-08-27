@@ -302,7 +302,19 @@ body {
   color: var(--accent-deep);
 }
 
+/*
+ * Content sits above the scene canvas.
+ *
+ * The canvas is `position: fixed; z-index: 2`. An unpositioned section paints its background in
+ * the block layer, below positioned elements, so the canvas shows through the plum and peach
+ * bands — that is the whole point. Content is lifted to 3 so it stays legible on top.
+ *
+ * Do not give a band `position: relative`: it would become a positioned element and paint its
+ * background over the scene. That is the one edit that breaks this.
+ */
 .band-inner {
+  position: relative;
+  z-index: 3;
   margin-inline: auto;
   max-width: 1024px;
   padding-inline: 1.25rem;

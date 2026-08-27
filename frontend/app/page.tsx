@@ -1,6 +1,6 @@
 import { Instrument_Serif, Red_Hat_Display } from "next/font/google"
 import Link from "next/link"
-import { HeroCanvas } from "@/components/HeroCanvas"
+import { SceneCanvas } from "@/components/SceneCanvas"
 import { Mark } from "@/components/Mark"
 import { Primer } from "@/components/Primer"
 import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
@@ -50,15 +50,18 @@ const bodySans = Red_Hat_Display({
 function Band({
   tone,
   eyebrow,
+  geometry,
   children,
 }: {
   tone?: "chrome" | "peach"
   eyebrow?: string
+  /** Which wireframe form the scene canvas shows while this band owns the viewport. */
+  geometry?: string
   children: React.ReactNode
 }) {
   const cls = tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : ""
   return (
-    <section className={`band ${cls}`}>
+    <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : "light"}>
       <div className="band-inner rise flex flex-col gap-8">
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         {children}
@@ -105,14 +108,14 @@ export default function Landing() {
         actions and description pushed to the bottom and spread apart. See .hero in globals.css
         for the measured paddings and sizes.
       */}
-      <section className="band-chrome hero" style={{ position: "relative", overflow: "hidden" }}>
-        {/*
-          Behind everything, and the only decoration on the site: a turning wireframe form in a
-          field of dust, one canvas and one animation loop. See components/HeroCanvas.tsx.
-        */}
-        <HeroCanvas />
+      {/*
+        One fixed canvas for the whole page: a wireframe form that morphs between the shapes the
+        sections declare, over dust that fades out with the hero. See components/SceneCanvas.tsx.
+      */}
+      <SceneCanvas />
 
-        <div className="hero-top enter" style={{ position: "relative" }}>
+      <section className="band-chrome hero" data-geometry="star" data-geometry-tone="chrome" data-geometry-hero>
+        <div className="hero-top enter" style={{ position: "relative", zIndex: 3 }}>
           <div className="flex items-center gap-4">
             <Mark size={26} />
             <span className="eyebrow">The confidential cross</span>
@@ -124,7 +127,7 @@ export default function Landing() {
           </h1>
         </div>
 
-        <div className="hero-bottom" style={{ position: "relative" }}>
+        <div className="hero-bottom" style={{ position: "relative", zIndex: 3 }}>
           <div className="hero-actions">
             <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
               See it in action
@@ -150,7 +153,7 @@ export default function Landing() {
       </section>
 
       {/* ------------------------------------------------- problem ------------ */}
-      <Band eyebrow="The problem">
+      <Band geometry="ico" eyebrow="The problem">
         <h2 className="display display-m max-w-[24ch]">Being seen is what costs you.</h2>
         <div className="stagger grid gap-8 sm:grid-cols-2">
           <p className="text-[16px] leading-relaxed text-[var(--dim)]">
@@ -168,7 +171,7 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- how ---------------- */}
-      <Band eyebrow="How it works">
+      <Band geometry="diamond" eyebrow="How it works">
         <h2 className="display display-m max-w-[26ch]">Four steps, none of them readable.</h2>
         <div className="stagger flex flex-col gap-9">
           <Step
@@ -195,12 +198,12 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- legend ------------- */}
-      <Band eyebrow="What a row looks like">
+      <Band geometry="ico" eyebrow="What a row looks like">
         <Primer label="Stored, then decrypted" animate />
       </Band>
 
       {/* ------------------------------------------------- proof, on peach ---- */}
-      <Band tone="peach" eyebrow="Measured, not claimed">
+      <Band tone="peach" geometry="ring" eyebrow="Measured, not claimed">
         <h2 className="display display-m max-w-[24ch]">Every number here came off the chain.</h2>
         <div className="stagger grid gap-10 sm:grid-cols-3">
           <Figure
@@ -227,7 +230,7 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- disclosure --------- */}
-      <Band eyebrow="Disclosure surface">
+      <Band geometry="diamond" eyebrow="Disclosure surface">
         <div className="stagger grid gap-10 sm:grid-cols-2">
           <div className="flex flex-col gap-3">
             <h3 className="text-[20px]">Public</h3>
@@ -252,7 +255,7 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- close, on plum ----- */}
-      <section className="band band-chrome">
+      <section className="band band-chrome" data-geometry="star" data-geometry-tone="chrome">
         <div className="band-inner rise flex flex-col gap-8">
           <h2 className="display display-l max-w-[20ch]">
             The book is public. It is also unreadable.

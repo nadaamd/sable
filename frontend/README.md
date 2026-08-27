@@ -160,9 +160,20 @@ text carrying the argument.
 be inspectable character by character, and the SABLE wordmark keeps the monospaced letterforms
 because the wide tracking on them is the identity.
 
-### The dust
+### The hero canvas
 
-One canvas behind the hero, `components/Dust.tsx`, and the only decoration on the site. The
+One canvas behind the hero, `components/HeroCanvas.tsx`, and the only decoration on the site: a
+wireframe icosahedron turning centre-stage in a field of drifting dust.
+
+The reference runs **two full-screen WebGL canvases** for this — a "rig" scene whose geometry
+changes per section (`data-geometry="star"` on the hero, `"diamond"` on the next) plus a GL
+gradient at 60% opacity, with a `noise.png` grain layer above everything. That is three.js work.
+This gets the same read in canvas 2D with no library: twelve vertices from the golden ratio,
+projected by hand with a perspective divide, edges brightening with depth, tilting toward the
+cursor rather than spinning.
+
+Both layers share **one** canvas and **one** `requestAnimationFrame` loop. Two components would
+have meant two loops competing for the same frame budget to draw into the same corner. The
 reference gets its ambience from two radial gradients whose `background-position` drifts over 20s;
 those are rules 24 and 25 of the catalogue below, so this does the same job with motes that drift
 and part around the cursor.

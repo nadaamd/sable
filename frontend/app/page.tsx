@@ -1,6 +1,6 @@
 import { Instrument_Serif, Red_Hat_Display } from "next/font/google"
 import Link from "next/link"
-import { Dust } from "@/components/Dust"
+import { HeroCanvas } from "@/components/HeroCanvas"
 import { Mark } from "@/components/Mark"
 import { Primer } from "@/components/Primer"
 import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
@@ -106,8 +106,11 @@ export default function Landing() {
         for the measured paddings and sizes.
       */}
       <section className="band-chrome hero" style={{ position: "relative", overflow: "hidden" }}>
-        {/* Behind everything, and the only decoration on the site. See components/Dust.tsx. */}
-        <Dust />
+        {/*
+          Behind everything, and the only decoration on the site: a turning wireframe form in a
+          field of dust, one canvas and one animation loop. See components/HeroCanvas.tsx.
+        */}
+        <HeroCanvas />
 
         <div className="hero-top enter" style={{ position: "relative" }}>
           <div className="flex items-center gap-4">

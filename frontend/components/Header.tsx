@@ -1,6 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import type { BatchView } from "@/lib/chain"
+import { Mark } from "@/components/Mark"
 import { Primer } from "@/components/Primer"
 import {
   CROSS_ADDRESS,
@@ -22,21 +24,6 @@ function countdown(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-}
-
-/**
- * The mark: three sealed fields and one cleared. Same glyph as the favicon, so a tab and the
- * page identify each other.
- */
-function Mark() {
-  return (
-    <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden className="shrink-0">
-      <rect x="4" y="5" width="15" height="4.5" rx="1" fill="var(--seal)" />
-      <rect x="4" y="13.75" width="21" height="4.5" rx="1" fill="var(--seal)" />
-      <rect x="4" y="22.5" width="10" height="4.5" rx="1" fill="var(--seal)" />
-      <rect x="16" y="22.5" width="8" height="4.5" rx="1" fill="var(--accent)" />
-    </svg>
-  )
 }
 
 function Contract({ label, address }: { label: string; address: string }) {
@@ -105,9 +92,12 @@ export function Header({
         style={{ minHeight: "var(--header-h)" }}
       >
         <div className="flex items-center gap-3.5">
-          <Mark />
-          <h1 className="mono text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
-          <span className="ml-1 hidden border-l border-[var(--accent-deep)] pl-4 text-[13px] text-[var(--accent)] md:inline">
+          {/* Back to the landing page, which is now where the project introduces itself. */}
+          <Link href="/" className="flex items-center gap-3.5 !text-[var(--chrome-ink)] hover:!no-underline">
+            <Mark />
+            <h1 className="mono text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
+          </Link>
+          <span className="hidden border-l border-[var(--accent-deep)] pl-4 text-[13px] text-[var(--accent)] md:inline">
             the confidential cross
           </span>
         </div>

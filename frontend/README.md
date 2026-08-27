@@ -7,7 +7,22 @@ with public `view` calls — no wallet, no signature, no permission — and rend
 because that is what the chain stores. Unlock one desk's key and that desk's rows resolve
 into numbers while every other row stays █.
 
-## Layout
+## Routes
+
+| Route | What it is |
+|---|---|
+| `/` | Landing. A Server Component with no state and no chain reads, so it ships no JavaScript and has no loading frame. One screen: the claim, the sealed-versus-decrypted legend, and a button. |
+| `/terminal` | The live book. Client-rendered, polls every 8s. |
+
+Live data sits behind the button, which is the reason the button exists. Both routes render the
+same `Primer` legend, so the notation a visitor learns on the landing is the notation they meet in
+the book. `Primer` deliberately carries no `"use client"`: it holds no state and handles no
+events, so the landing stays fully static.
+
+`/terminal` is a client component and cannot export `metadata`, so the route has a thin server
+`layout.tsx` that holds it.
+
+## Terminal layout
 
 The page follows the market's own order rather than presenting a flat stack of equal-weight
 panels, which said nothing about which control acted on which data.

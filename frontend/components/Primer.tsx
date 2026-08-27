@@ -1,5 +1,8 @@
-"use client"
-
+/*
+ * No "use client": this renders no state and handles no events, so it stays a Server Component
+ * and the landing page ships no JavaScript for it. The terminal imports it too, where it simply
+ * becomes part of that route's client bundle.
+ */
 /**
  * The page has to be legible in three seconds, before anyone reads a sentence.
  *
@@ -29,12 +32,14 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
   )
 }
 
-export function Primer() {
+export function Primer({ label = "How to read this page" }: { label?: string | null }) {
   return (
     <div className="panel">
-      <div className="panel-head px-3 py-2">
-        <span className="panel-label">How to read this page</span>
-      </div>
+      {label !== null && (
+        <div className="panel-head px-3 py-2">
+          <span className="panel-label">{label}</span>
+        </div>
+      )}
 
       <div className="grid gap-px bg-[var(--line)] md:grid-cols-[1fr_auto_1fr]">
         <div className="bg-[var(--panel)] px-4 py-4">

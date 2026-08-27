@@ -20,6 +20,9 @@ npm run preflight          # read-only, zero gas — GO / NO-GO in ~10 s
 cd frontend && npm run dev
 ```
 
+The site is two routes: `/` introduces the project and `/terminal` is the live book. The cut below
+opens on the terminal, so film **http://localhost:3000/terminal** unless a beat says otherwise.
+
 `preflight` samples RPC availability, confirms the terminal opens on a populated batch, and
 checks that the desk keys on disk actually unlock rows in *that* batch. The last one is the
 trap: keys from a previous market fail silently, and you only discover it when clicking a desk
@@ -57,8 +60,12 @@ pace (~150 wpm); each block is sized to its slot.
 
 ### 0:00–0:12 — Open on the sealed book
 
-**Screen.** `localhost:3000`, untouched. The blotter is full of solid blocks. Do not move the
-mouse for the first three seconds — let the frame land.
+**Screen.** `localhost:3000/terminal`, untouched. The blotter is full of solid blocks. Do not move
+the mouse for the first three seconds — let the frame land.
+
+Optionally open on `/` for two seconds first: the landing shows the same sealed-versus-decrypted
+legend as a still, which primes the notation before the live book appears. Cut it if the 135 s is
+tight — the terminal carries the same legend at the top.
 
 > "This is a live order book on a public blockchain. Six real orders. Every field — side,
 > price, size — is a solid block, because that is genuinely what the chain stores."
@@ -122,6 +129,9 @@ opening them all reveals the whole book and destroys the only contrast that matt
 > a public good. Nobody has to show their hand to produce it."
 
 **End card.** Hold 3 s, legible: repository, live app, `@COTINetwork`.
+
+The live app link for the post is the landing, <https://sable-cross.vercel.app>, not the terminal:
+it explains itself in one screen and the button carries a visitor onward.
 
 ---
 

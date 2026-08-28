@@ -62,7 +62,7 @@ function Band({
   const cls = tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : ""
   return (
     <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : "light"}>
-      <div className="band-inner rise flex flex-col gap-8">
+      <div className="band-inner scrim rise flex flex-col gap-8">
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         {children}
       </div>
@@ -115,7 +115,7 @@ export default function Landing() {
       <SceneCanvas />
 
       <section className="band-chrome hero" data-geometry="star" data-geometry-tone="chrome" data-geometry-hero>
-        <div className="hero-top enter" style={{ position: "relative", zIndex: 3 }}>
+        <div className="hero-top scrim enter" style={{ position: "relative", zIndex: 3 }}>
           <div className="flex items-center gap-4">
             <Mark size={26} />
             <span className="eyebrow">The confidential cross</span>
@@ -127,7 +127,7 @@ export default function Landing() {
           </h1>
         </div>
 
-        <div className="hero-bottom" style={{ position: "relative", zIndex: 3 }}>
+        <div className="hero-bottom scrim" style={{ position: "relative", zIndex: 3 }}>
           <div className="hero-actions">
             <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
               See it in action
@@ -256,7 +256,7 @@ export default function Landing() {
 
       {/* ------------------------------------------------- close, on plum ----- */}
       <section className="band band-chrome" data-geometry="star" data-geometry-tone="chrome">
-        <div className="band-inner rise flex flex-col gap-8">
+        <div className="band-inner scrim rise flex flex-col gap-8">
           <h2 className="display display-l max-w-[20ch]">
             The book is public. It is also unreadable.
           </h2>

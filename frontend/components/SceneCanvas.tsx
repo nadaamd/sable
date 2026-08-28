@@ -48,11 +48,11 @@ const MAX_PARTICLES = 4_200
  */
 const ALPHA_BUCKETS = 14
 /*
- * The brightest a particle ever gets: bright (max 1) x 0.6. Buckets are scaled to THIS, not to 1.
+ * The brightest a particle ever gets: bright (max 1) x 0.85. Buckets are scaled to THIS, not to 1.
  * Spreading 14 buckets over 0..1 when nothing exceeds 0.6 wastes five of them and drops the
  * effective resolution to nine, which shows as banding in the twinkle.
  */
-const MAX_ALPHA = 0.6
+const MAX_ALPHA = 0.85
 const CURSOR_RADIUS = 150
 const CURSOR_PUSH = 1.6
 const MORPH_EASE = 0.02
@@ -229,8 +229,8 @@ export function SceneCanvas() {
           x: 0, y: 0, z: 0,
           tx: 0, ty: 0, tz: 0,
           ox: 0, oy: 0,
-          size: 0.55 + Math.random() * 0.95,
-          bright: 0.3 + Math.random() * 0.7,
+          size: 0.7 + Math.random() * 1.2,
+          bright: 0.5 + Math.random() * 0.5,
           phase: Math.random() * Math.PI * 2,
         }
         const [x, y, z] = sample(shape, p)
@@ -264,7 +264,8 @@ export function SceneCanvas() {
         const k = 6 / (6 + zr)
         // Twinkle. The reference clamps its size scale to 0.72..1.22; this stays in that band.
         const tw = 0.97 + Math.sin(t * 0.0016 + p.phase) * 0.25
-        const alpha = Math.max(0, Math.min(1, (k - 0.68) * 1.9)) * p.bright * MAX_ALPHA
+        // Depth fade compressed to 0.55..1: the old floor left the far side barely there.
+        const alpha = (0.55 + Math.max(0, Math.min(1, (k - 0.8) * 2.4)) * 0.45) * p.bright * MAX_ALPHA
         if (alpha <= 0.012) continue
 
         const bucket = Math.min(ALPHA_BUCKETS - 1, ((alpha / MAX_ALPHA) * ALPHA_BUCKETS) | 0)

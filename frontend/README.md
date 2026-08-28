@@ -182,6 +182,22 @@ This reproduces that in canvas 2D with no library: 2D outlines fan-triangulated 
 area-weighted triangle picking, barycentric placement, per-particle twinkle inside the same
 0.72–1.22 band the reference clamps to.
 
+**Visibility is a geometry problem, not an alpha one.** The cloud passes *behind* the text, so its
+opacity becomes the local background of the letters. Measured against a saturated patch, no useful
+opacity was safe:
+
+| Particle alpha | `--dim` on peach | Cream on chrome |
+|---|---|---|
+| 0.35 | 3.26 | 3.59 |
+| 0.50 | 2.66 | 2.53 |
+| 0.85 | 1.72 | 1.40 |
+
+So brightness had to be bought with a **scrim**, not conceded. `.scrim::before` lays the band's own
+colour back down at 92% under each text block with a radial falloff, so there is no box edge and the
+cloud still shows around and between the words. At 92% with particles at 0.85 the tightest pair
+holds **4.63:1**, against 2.66 unprotected. Particles run at `MAX_ALPHA = 0.85`, brightness floor
+0.5, and the depth fade is compressed to 0.55–1 so the far side is present rather than hinted.
+
 **Density, and what it cost.** ~4,000 particles on a 1080p viewport (`AREA_PER_PARTICLE = 520`,
 capped at 4,200; ~630 on a phone). Getting there needed the draw loop fixed first: assigning
 `fillStyle` per particle means building and parsing one `rgba()` string per particle per frame, and

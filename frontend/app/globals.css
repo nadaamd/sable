@@ -320,6 +320,51 @@ body {
   padding-inline: 1.25rem;
 }
 
+/*
+ * A soft scrim under every text block, and the reason the particle cloud can be bright at all.
+ *
+ * The cloud passes BEHIND the text, so its opacity becomes the local background of the letters.
+ * Measured against a saturated patch, no useful opacity was safe: even at 0.35, --dim over bronze
+ * on the peach band read 3.26:1. Raising visibility therefore had to be geometric, not a matter of
+ * alpha.
+ *
+ * This lays the band's own colour back down at 92% under the content, with a radial falloff so
+ * there is no box edge — the cloud still shows around and between the text. At 92% and a particle
+ * alpha of 0.85 the tightest pair (--dim on peach) holds 4.63:1, against 2.66:1 unprotected.
+ *
+ * `z-index: -1` is inside `.band-inner`'s own stacking context, so this sits under the text but
+ * still above the canvas at z-index 2.
+ */
+.scrim::before {
+  content: "";
+  position: absolute;
+  inset: -2.5rem -2rem;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    var(--scrim-color) 0%,
+    var(--scrim-color) 58%,
+    transparent 100%
+  );
+}
+
+.band {
+  --scrim-color: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+
+.band-chrome {
+  --scrim-color: color-mix(in srgb, var(--chrome) 92%, transparent);
+}
+
+.band-peach {
+  --scrim-color: color-mix(in srgb, var(--panel-hi) 92%, transparent);
+}
+
+.hero {
+  --scrim-color: color-mix(in srgb, var(--chrome) 92%, transparent);
+}
+
 @media (min-width: 640px) {
   .band-inner {
     padding-inline: 2rem;

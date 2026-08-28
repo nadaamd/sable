@@ -3,93 +3,154 @@
 import { useEffect, useRef } from "react"
 
 /**
- * One fixed canvas behind the whole landing: a wireframe form that morphs as you scroll, over a
- * field of dust that belongs to the hero.
+ * One fixed canvas behind the landing: a cloud of particles that holds a shape, twinkles, and
+ * morphs as you scroll.
  *
- * The reference does this with a full-screen three.js "rig" whose geometry is chosen by the
- * section in view (`data-geometry="star"` on its hero, `"diamond"` on the next). Same idea here,
- * hand-rolled in canvas 2D: sections declare `data-geometry`, an IntersectionObserver picks the
- * most visible one, and the vertices ease toward that target.
+ * This follows the reference's actual approach, which is not what a first look suggested. Its form
+ * is not a wireframe — it is a POINT CLOUD sampled over the surface of a mesh, drawn with a points
+ * shader. From its bundle:
  *
- * Every form has TWELVE vertices, derived from the same icosahedron. That is what makes morphing
- * trivial: interpolate vertex i to vertex i, no topology to reconcile, and the edge list never
- * changes.
+ *   ig = { star: im, diamond: im, adn: ... }
+ *   ix(count, "star") -> { i0, i1, i2, baryU, baryV }   // barycentric samples on triangles
+ *   vBrightness = brightness * clamp(sizeScale, 0.72, 1.22)
  *
- * PAINT ORDER, which is the fiddly part. The canvas is `position: fixed` at `z-index: 2`. An
- * unpositioned section paints its background in the block layer, below positioned elements, so
- * the canvas sits above the plum and peach bands. Section CONTENT is lifted to `z-index: 3` by
- * `.band-inner` so it stays above the canvas. Give a band `position: relative` and it will hide
- * the scene — that is the one edit that breaks this.
+ * Particles distributed over triangles by barycentric coordinates, each with its own size,
+ * brightness and twinkle. An earlier version here drew a twelve-vertex wireframe with dust as a
+ * separate layer; the reference has one thing, and the dust IS the shape. This does that.
+ *
+ * Identity is stable across shapes, which is what makes the morph clean: every particle keeps a
+ * fixed (triangle-pick, u, v) tuple and each shape maps that tuple through its own triangle list,
+ * so particle i lands in the corresponding region of whatever shape is current.
+ *
+ * PAINT ORDER. The canvas is `position: fixed; z-index: 2`. An unpositioned section paints its
+ * background in the block layer, below positioned elements, so the canvas shows through the plum
+ * and peach bands. Content is lifted to `z-index: 3` by `.band-inner`. Giving a band
+ * `position: relative` would hide the whole scene — that is the one edit that breaks this.
  *
  * Atmosphere, not information, so the usual box: reduced-motion draws one static frame and never
- * loops, the loop stops when nothing is in view and when the tab is hidden, counts scale with
+ * loops, the loop stops when nothing is in view and when the tab is hidden, the count scales with
  * viewport area, `pointer-events: none` and `aria-hidden`.
  */
 
-const AREA_PER_MOTE = 14_000
-const MAX_MOTES = 90
-const CURSOR_RADIUS = 130
-const CURSOR_PUSH = 0.28
-/** Per-frame fraction of the remaining distance to the target shape. Slow on purpose. */
-const MORPH_EASE = 0.022
+const AREA_PER_PARTICLE = 1_500
+const MAX_PARTICLES = 1_100
+const CURSOR_RADIUS = 150
+const CURSOR_PUSH = 1.6
+const MORPH_EASE = 0.02
 
 type V3 = [number, number, number]
+type Tri = [V3, V3, V3]
 
-const PHI = (1 + Math.sqrt(5)) / 2
-const ICO: V3[] = [
-  [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
-  [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
-  [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1],
-]
-
-/** Edges of the icosahedron: vertex pairs at the edge length 2. Fixed for every form. */
-const EDGES: Array<[number, number]> = (() => {
-  const out: Array<[number, number]> = []
-  for (let i = 0; i < ICO.length; i++) {
-    for (let j = i + 1; j < ICO.length; j++) {
-      const d = Math.hypot(ICO[i][0] - ICO[j][0], ICO[i][1] - ICO[j][1], ICO[i][2] - ICO[j][2])
-      if (Math.abs(d - 2) < 0.001) out.push([i, j])
-    }
+/** A closed 2D outline, fan-triangulated from the origin and given depth in z. */
+function extrude(outline: Array<[number, number]>, depth: number): Tri[] {
+  const tris: Tri[] = []
+  const zf = depth / 2
+  const zb = -depth / 2
+  for (let i = 0; i < outline.length; i++) {
+    const [ax, ay] = outline[i]
+    const [bx, by] = outline[(i + 1) % outline.length]
+    tris.push([[0, 0, zf], [ax, ay, zf], [bx, by, zf]])
+    tris.push([[0, 0, zb], [ax, ay, zb], [bx, by, zb]])
+    tris.push([[ax, ay, zf], [bx, by, zf], [ax, ay, zb]])
+    tris.push([[bx, by, zf], [bx, by, zb], [ax, ay, zb]])
   }
-  return out
-})()
-
-/**
- * The forms, all twelve vertices, all transformations of the same solid.
- *
- * Building them this way rather than authoring separate meshes is what guarantees a clean morph:
- * vertex i always means the same corner.
- */
-const GEOMETRIES: Record<string, V3[]> = {
-  ico: ICO,
-  /** Alternating vertices pushed out: spiky. */
-  star: ICO.map(([x, y, z], i) => {
-    const k = i % 2 === 0 ? 1.55 : 0.62
-    return [x * k, y * k, z * k] as V3
-  }),
-  /** Stretched on Y, pinched on X and Z: a bipyramid read. */
-  diamond: ICO.map(([x, y, z]) => [x * 0.52, y * 1.72, z * 0.52] as V3),
-  /** Flattened on Y, spread outward: a ring seen almost edge-on. */
-  ring: ICO.map(([x, y, z]) => [x * 1.34, y * 0.22, z * 1.34] as V3),
+  return tris
 }
 
-const DEFAULT_GEOMETRY = "ico"
+/** A star outline: `spikes` tips at `outer`, valleys at `inner`. */
+function starOutline(spikes: number, outer: number, inner: number): Array<[number, number]> {
+  const pts: Array<[number, number]> = []
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner
+    const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2
+    pts.push([Math.cos(a) * r, Math.sin(a) * r])
+  }
+  return pts
+}
+
+const SHAPES: Record<string, Tri[]> = {
+  /** Five spikes: the reference's hero form. */
+  star: extrude(starOutline(5, 1.5, 0.6), 0.34),
+  /** A four-point rhombus, taller than wide. */
+  diamond: extrude([[0, 1.62], [0.62, 0], [0, -1.62], [-0.62, 0]], 0.3),
+  /** A twelve-sided plate: reads as a ring seen near edge-on. */
+  ring: extrude(starOutline(12, 1.32, 1.1), 0.16),
+  /** Six spikes, softer than the hero star. */
+  bloom: extrude(starOutline(6, 1.4, 0.76), 0.28),
+}
+
+const DEFAULT_SHAPE = "star"
 
 /*
- * The stroke has to change with the surface under it.
- *
- * One fixed canvas crosses opposite backgrounds, and a single colour cannot serve both: Light
- * Bronze reads 4.79:1 on the plum bands but 2.11:1 on the light page, and deep bronze is the
- * mirror image (2.01:1 on plum, 5.03:1 on light). So sections declare a tone and the stroke eases
- * between the two along with the geometry.
+ * The particle colour has to change with the surface under it. One fixed canvas crosses opposite
+ * backgrounds and a single colour cannot serve both: Cream reads 8.84:1 on the plum bands but
+ * disappears on the light page, where deep bronze is the one that carries.
  */
-const TONE_STROKE: Record<string, [number, number, number]> = {
-  chrome: [206, 160, 126],
+const TONE_RGB: Record<string, [number, number, number]> = {
+  chrome: [226, 232, 192],
   light: [143, 92, 47],
 }
 const DEFAULT_TONE = "light"
 
-type Mote = { x: number; y: number; vx: number; vy: number; r: number; a: number }
+type Particle = {
+  pick: number
+  u: number
+  v: number
+  x: number
+  y: number
+  z: number
+  tx: number
+  ty: number
+  tz: number
+  ox: number
+  oy: number
+  size: number
+  bright: number
+  phase: number
+}
+
+/** Cumulative triangle areas, for area-weighted sampling. */
+function areas(tris: Tri[]) {
+  const cum: number[] = []
+  let total = 0
+  for (const [a, b, c] of tris) {
+    const ux = b[0] - a[0]
+    const uy = b[1] - a[1]
+    const uz = b[2] - a[2]
+    const vx = c[0] - a[0]
+    const vy = c[1] - a[1]
+    const vz = c[2] - a[2]
+    total += Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) / 2
+    cum.push(total)
+  }
+  return { cum, total }
+}
+
+const SHAPE_AREAS: Record<string, ReturnType<typeof areas>> = Object.fromEntries(
+  Object.entries(SHAPES).map(([k, v]) => [k, areas(v)]),
+)
+
+/** Where particle `p` sits on shape `name`, from its stable identity. */
+function sample(name: string, p: Particle): V3 {
+  const tris = SHAPES[name] ?? SHAPES[DEFAULT_SHAPE]
+  const { cum, total } = SHAPE_AREAS[name] ?? SHAPE_AREAS[DEFAULT_SHAPE]
+  const want = p.pick * total
+  let idx = cum.findIndex((c) => c >= want)
+  if (idx < 0) idx = tris.length - 1
+  const [a, b, c] = tris[idx]
+  let u = p.u
+  let v = p.v
+  if (u + v > 1) {
+    u = 1 - u
+    v = 1 - v
+  }
+  const wgt = 1 - u - v
+  return [
+    a[0] * wgt + b[0] * u + c[0] * v,
+    a[1] * wgt + b[1] * u + c[1] * v,
+    a[2] * wgt + b[2] * u + c[2] * v,
+  ]
+}
 
 export function SceneCanvas() {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -103,22 +164,25 @@ export function SceneCanvas() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
 
-    let motes: Mote[] = []
+    let parts: Particle[] = []
     let w = 0
     let h = 0
     let raf = 0
     let running = false
     let t = 0
-    /** Live vertices, eased toward `target` every frame. */
-    const current: V3[] = GEOMETRIES[DEFAULT_GEOMETRY].map((v) => [...v] as V3)
-    let target: V3[] = current.map((v) => [...v] as V3)
-    /** 1 while the hero fills the viewport, 0 once it has left: fades the dust out with it. */
-    let heroVisible = 1
-    const stroke: [number, number, number] = [...TONE_STROKE[DEFAULT_TONE]] as [number, number, number]
-    let strokeTarget: [number, number, number] = [...stroke] as [number, number, number]
+    let shape = DEFAULT_SHAPE
+    const rgb: [number, number, number] = [...TONE_RGB[DEFAULT_TONE]] as [number, number, number]
+    let rgbTarget: [number, number, number] = [...rgb] as [number, number, number]
     const cursor = { x: -9999, y: -9999, nx: 0, ny: 0 }
 
-    const hero = document.querySelector<HTMLElement>("[data-geometry-hero]")
+    function retarget() {
+      for (const p of parts) {
+        const [x, y, z] = sample(shape, p)
+        p.tx = x
+        p.ty = y
+        p.tz = z
+      }
+    }
 
     function seed() {
       w = window.innerWidth
@@ -127,113 +191,85 @@ export function SceneCanvas() {
       canvas!.height = Math.round(h * dpr)
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-      const count = Math.min(MAX_MOTES, Math.round((w * h) / AREA_PER_MOTE))
-      motes = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.14,
-        vy: -0.05 - Math.random() * 0.12,
-        r: 0.6 + Math.random() * 1.5,
-        a: 0.14 + Math.random() * 0.4,
-      }))
-    }
-
-    function project(v: V3, ry: number, rx: number, scale: number) {
-      const [x0, y0, z0] = v
-      const cy = Math.cos(ry)
-      const sy = Math.sin(ry)
-      const x = x0 * cy + z0 * sy
-      let z = -x0 * sy + z0 * cy
-      const cx = Math.cos(rx)
-      const sx = Math.sin(rx)
-      const y = y0 * cx - z * sx
-      z = y0 * sx + z * cx
-      const depth = 6
-      const k = depth / (depth + z)
-      return { x: x * scale * k, y: y * scale * k, k }
-    }
-
-    function drawForm() {
-      const cxp = w / 2
-      const cyp = h / 2
-      const scale = Math.min(w, h) * 0.13
-      const ry = t * 0.00022 + cursor.nx * 0.35
-      const rx = Math.sin(t * 0.00013) * 0.35 + cursor.ny * 0.25
-      const pts = current.map((v) => project(v, ry, rx, scale))
-
-      ctx!.lineWidth = 1
-      for (const [i, j] of EDGES) {
-        const a = pts[i]
-        const b = pts[j]
-        const near = (a.k + b.k) / 2
-        const alpha = Math.max(0, Math.min(1, (near - 0.72) * 1.6)) * 0.42
-        if (alpha <= 0.01) continue
-        ctx!.strokeStyle = `rgba(${Math.round(stroke[0])}, ${Math.round(stroke[1])}, ${Math.round(stroke[2])}, ${alpha})`
-        ctx!.beginPath()
-        ctx!.moveTo(cxp + a.x, cyp + a.y)
-        ctx!.lineTo(cxp + b.x, cyp + b.y)
-        ctx!.stroke()
-      }
-
-      for (const p of pts) {
-        const alpha = Math.max(0, Math.min(1, (p.k - 0.72) * 1.6)) * 0.5
-        if (alpha <= 0.01) continue
-        ctx!.fillStyle = `rgba(${Math.round(stroke[0])}, ${Math.round(stroke[1])}, ${Math.round(stroke[2])}, ${alpha})`
-        ctx!.beginPath()
-        ctx!.arc(cxp + p.x, cyp + p.y, 1.6, 0, Math.PI * 2)
-        ctx!.fill()
-      }
-    }
-
-    function drawDust() {
-      if (heroVisible <= 0.01) return
-      for (const m of motes) {
-        ctx!.beginPath()
-        ctx!.arc(m.x, m.y, m.r, 0, Math.PI * 2)
-        ctx!.fillStyle = `rgba(226, 232, 192, ${m.a * heroVisible})`
-        ctx!.fill()
-      }
+      const count = Math.min(MAX_PARTICLES, Math.round((w * h) / AREA_PER_PARTICLE))
+      parts = Array.from({ length: count }, () => {
+        const p: Particle = {
+          pick: Math.random(),
+          u: Math.random(),
+          v: Math.random(),
+          x: 0, y: 0, z: 0,
+          tx: 0, ty: 0, tz: 0,
+          ox: 0, oy: 0,
+          size: 0.7 + Math.random() * 1.15,
+          bright: 0.3 + Math.random() * 0.7,
+          phase: Math.random() * Math.PI * 2,
+        }
+        const [x, y, z] = sample(shape, p)
+        p.x = p.tx = x
+        p.y = p.ty = y
+        p.z = p.tz = z
+        return p
+      })
     }
 
     function draw() {
       ctx!.clearRect(0, 0, w, h)
-      drawForm()
-      drawDust()
+      const cxp = w / 2
+      const cyp = h / 2
+      const scale = Math.min(w, h) * 0.28
+      const ry = t * 0.00019 + cursor.nx * 0.4
+      const rx = Math.sin(t * 0.00012) * 0.3 + cursor.ny * 0.28
+      const cy = Math.cos(ry)
+      const sy = Math.sin(ry)
+      const cx = Math.cos(rx)
+      const sx = Math.sin(rx)
+
+      for (const p of parts) {
+        const xr = p.x * cy + p.z * sy
+        let zr = -p.x * sy + p.z * cy
+        const yr = p.y * cx - zr * sx
+        zr = p.y * sx + zr * cx
+
+        const k = 6 / (6 + zr)
+        const sxp = cxp + xr * scale * k + p.ox
+        const syp = cyp + yr * scale * k + p.oy
+
+        // Twinkle. The reference clamps its size scale to 0.72..1.22; this stays in that band.
+        const tw = 0.97 + Math.sin(t * 0.0016 + p.phase) * 0.25
+        const size = Math.max(0.5, p.size * k * tw)
+        const alpha = Math.max(0, Math.min(1, (k - 0.68) * 1.9)) * p.bright * 0.6
+        if (alpha <= 0.012) continue
+
+        ctx!.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha})`
+        ctx!.fillRect(sxp, syp, size, size)
+      }
     }
 
     function step(now: number) {
       t = now
+      for (let i = 0; i < rgb.length; i++) rgb[i] += (rgbTarget[i] - rgb[i]) * MORPH_EASE
 
-      for (let i = 0; i < current.length; i++) {
-        for (let k = 0; k < 3; k++) {
-          current[i][k] += (target[i][k] - current[i][k]) * MORPH_EASE
-        }
-      }
-      for (let k = 0; k < 3; k++) {
-        stroke[k] += (strokeTarget[k] - stroke[k]) * MORPH_EASE
-      }
+      const scale = Math.min(w, h) * 0.28
+      for (const p of parts) {
+        p.x += (p.tx - p.x) * MORPH_EASE
+        p.y += (p.ty - p.y) * MORPH_EASE
+        p.z += (p.tz - p.z) * MORPH_EASE
 
-      if (hero) {
-        const r = hero.getBoundingClientRect()
-        heroVisible = Math.max(0, Math.min(1, (r.bottom - 0) / Math.max(1, r.height)))
-      }
-
-      for (const m of motes) {
-        m.x += m.vx
-        m.y += m.vy
-        const dx = m.x - cursor.x
-        const dy = m.y - cursor.y
+        // The cursor pushes the PROJECTED position and the push decays. Displacing the target
+        // instead would permanently deform the shape.
+        const px = w / 2 + p.x * scale + p.ox
+        const py = h / 2 + p.y * scale + p.oy
+        const dx = px - cursor.x
+        const dy = py - cursor.y
         const d2 = dx * dx + dy * dy
         if (d2 < CURSOR_RADIUS * CURSOR_RADIUS && d2 > 0.01) {
           const d = Math.sqrt(d2)
           const force = (1 - d / CURSOR_RADIUS) * CURSOR_PUSH
-          m.x += (dx / d) * force
-          m.y += (dy / d) * force
+          p.ox += (dx / d) * force
+          p.oy += (dy / d) * force
         }
-        if (m.y < -4) m.y = h + 4
-        if (m.y > h + 4) m.y = -4
-        if (m.x < -4) m.x = w + 4
-        if (m.x > w + 4) m.x = -4
+        p.ox *= 0.93
+        p.oy *= 0.93
       }
 
       draw()
@@ -255,9 +291,9 @@ export function SceneCanvas() {
     draw()
 
     /*
-     * Which section owns the scene: the one with the largest visible area. Comparing ratios alone
-     * lets a short section that happens to be fully visible outvote the tall one filling the
-     * screen, which makes the form flicker between shapes on a slow scroll.
+     * Which section owns the scene: the one with the largest visible AREA. Comparing intersection
+     * ratios lets a short fully-visible section outvote the tall one filling the screen, which
+     * makes the shape flicker on a slow scroll.
      */
     const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-geometry]"))
     const visible = new Map<HTMLElement, number>()
@@ -265,8 +301,7 @@ export function SceneCanvas() {
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          const el = e.target as HTMLElement
-          visible.set(el, e.isIntersecting ? e.intersectionRect.height : 0)
+          visible.set(e.target as HTMLElement, e.isIntersecting ? e.intersectionRect.height : 0)
         }
         let best: HTMLElement | null = null
         let bestArea = 0
@@ -276,12 +311,13 @@ export function SceneCanvas() {
             best = el
           }
         }
-        const name = best?.dataset.geometry ?? DEFAULT_GEOMETRY
-        const next = GEOMETRIES[name] ?? GEOMETRIES[DEFAULT_GEOMETRY]
-        target = next.map((v) => [...v] as V3)
-
+        const name = best?.dataset.geometry ?? DEFAULT_SHAPE
+        if (SHAPES[name] && name !== shape) {
+          shape = name
+          retarget()
+        }
         const tone = best?.dataset.geometryTone ?? DEFAULT_TONE
-        strokeTarget = [...(TONE_STROKE[tone] ?? TONE_STROKE[DEFAULT_TONE])] as [number, number, number]
+        rgbTarget = [...(TONE_RGB[tone] ?? TONE_RGB[DEFAULT_TONE])] as [number, number, number]
 
         if (bestArea > 0 && !document.hidden) start()
         else stop()

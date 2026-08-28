@@ -153,7 +153,7 @@ export default function Landing() {
       </section>
 
       {/* ------------------------------------------------- problem ------------ */}
-      <Band geometry="ico" eyebrow="The problem">
+      <Band geometry="bloom" eyebrow="The problem">
         <h2 className="display display-m max-w-[24ch]">Being seen is what costs you.</h2>
         <div className="stagger grid gap-8 sm:grid-cols-2">
           <p className="text-[16px] leading-relaxed text-[var(--dim)]">
@@ -198,7 +198,7 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- legend ------------- */}
-      <Band geometry="ico" eyebrow="What a row looks like">
+      <Band geometry="bloom" eyebrow="What a row looks like">
         <Primer label="Stored, then decrypted" animate />
       </Band>
 

@@ -162,26 +162,45 @@ because the wide tracking on them is the identity.
 
 ### The scene canvas
 
-One fixed canvas behind the whole landing, `components/SceneCanvas.tsx`: a wireframe form that
-morphs as you scroll, over dust that fades out with the hero. The reference does this with a
-full-screen three.js "rig" whose geometry is chosen by the section in view; this is the same idea
-in canvas 2D with no library.
+One fixed canvas behind the whole landing, `components/SceneCanvas.tsx`: a cloud of particles that
+holds a shape, twinkles, and morphs as you scroll.
+
+The reference's form is **not a wireframe**, which a first look suggested and an earlier version
+here copied. Reading its bundle:
+
+```js
+ig = { star: im, diamond: im, adn: ... }
+ix(count, "star") -> { i0, i1, i2, baryU, baryV }   // barycentric samples on triangles
+vBrightness = brightness * clamp(sizeScale, 0.72, 1.22)
+```
+
+It is a **point cloud sampled over the surface of a mesh**, drawn with a points shader — particles
+placed on triangles by barycentric coordinates, each with its own size, brightness and twinkle,
+driven by GSAP ScrollTrigger. The dust and the shape are one thing, not two layers.
+
+This reproduces that in canvas 2D with no library: 2D outlines fan-triangulated and extruded in z,
+area-weighted triangle picking, barycentric placement, per-particle twinkle inside the same
+0.72–1.22 band the reference clamps to.
 
 **Sections declare their shape.** `data-geometry` on a section, an IntersectionObserver picks the
 one with the largest visible *area* (comparing ratios alone lets a short fully-visible section
-outvote the tall one filling the screen, which makes the form flicker on a slow scroll), and the
-vertices ease toward that target.
+outvote the tall one filling the screen, which makes the form flicker on a slow scroll), and every
+particle eases toward its place on the new shape.
 
 | Shape | Where |
 |---|---|
-| `star` | hero, close |
-| `ico` | the problem, the legend |
-| `diamond` | how it works, disclosure |
-| `ring` | the measured figures |
+| `star` — five spikes | hero, close |
+| `bloom` — six spikes, softer | the problem, the legend |
+| `diamond` — four-point rhombus | how it works, disclosure |
+| `ring` — twelve-sided plate | the measured figures |
 
-Every form has **twelve vertices**, all transformations of the same icosahedron. That is what
-makes morphing trivial: vertex *i* always means the same corner, so there is no topology to
-reconcile and the edge list never changes.
+**Particle identity is stable across shapes**, which is what makes the morph clean: each particle
+keeps a fixed `(pick, u, v)` tuple and every shape maps that tuple through its own triangle list,
+so particle *i* lands in the corresponding region of whatever shape is current. Add a shape by
+adding an outline; nothing else needs to know.
+
+The cursor pushes the **projected** position and the push decays. Displacing the target instead
+would permanently deform the shape.
 
 **The stroke follows the band.** One canvas crossing opposite backgrounds cannot use one colour:
 Light Bronze reads 4.79:1 on plum but 2.11:1 on the light page, and deep bronze is the mirror

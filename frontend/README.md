@@ -182,6 +182,15 @@ This reproduces that in canvas 2D with no library: 2D outlines fan-triangulated 
 area-weighted triangle picking, barycentric placement, per-particle twinkle inside the same
 0.72–1.22 band the reference clamps to.
 
+**Density, and what it cost.** ~4,000 particles on a 1080p viewport (`AREA_PER_PARTICLE = 520`,
+capped at 4,200; ~630 on a phone). Getting there needed the draw loop fixed first: assigning
+`fillStyle` per particle means building and parsing one `rgba()` string per particle per frame, and
+that — not the geometry — was the ceiling. Particles are now collected into **14 alpha buckets**,
+one style assignment and one `fill()` each, so 4,000 particles cost 14 style assignments instead of
+4,000. Buckets are scaled to the real maximum alpha (0.6) rather than to 1; spreading them over
+0..1 wasted five and showed as banding in the twinkle. Triangle picking is a binary search, since a
+linear scan is O(particles × triangles) on every reseed and morph.
+
 **Sections declare their shape.** `data-geometry` on a section, an IntersectionObserver picks the
 one with the largest visible *area* (comparing ratios alone lets a short fully-visible section
 outvote the tall one filling the screen, which makes the form flicker on a slow scroll), and every

@@ -32,8 +32,27 @@ import { useEffect, useRef } from "react"
  * viewport area, `pointer-events: none` and `aria-hidden`.
  */
 
-const AREA_PER_PARTICLE = 1_500
-const MAX_PARTICLES = 1_100
+/*
+ * Density. The reference's cloud reads as a solid shape, which needs far more particles than the
+ * first pass used (1,100). Affording 4,200 meant fixing the draw loop first: see ALPHA_BUCKETS.
+ */
+const AREA_PER_PARTICLE = 520
+const MAX_PARTICLES = 4_200
+/*
+ * Particles are drawn in alpha buckets, not one by one.
+ *
+ * Assigning `fillStyle` per particle means building and parsing one rgba() string per particle per
+ * frame, and that — not the geometry — was the ceiling. Quantising alpha into buckets collapses
+ * 4,200 style assignments into 14, with one path and one fill each, so density costs arithmetic
+ * instead of string work.
+ */
+const ALPHA_BUCKETS = 14
+/*
+ * The brightest a particle ever gets: bright (max 1) x 0.6. Buckets are scaled to THIS, not to 1.
+ * Spreading 14 buckets over 0..1 when nothing exceeds 0.6 wastes five of them and drops the
+ * effective resolution to nine, which shows as banding in the twinkle.
+ */
+const MAX_ALPHA = 0.6
 const CURSOR_RADIUS = 150
 const CURSOR_PUSH = 1.6
 const MORPH_EASE = 0.02
@@ -135,8 +154,16 @@ function sample(name: string, p: Particle): V3 {
   const tris = SHAPES[name] ?? SHAPES[DEFAULT_SHAPE]
   const { cum, total } = SHAPE_AREAS[name] ?? SHAPE_AREAS[DEFAULT_SHAPE]
   const want = p.pick * total
-  let idx = cum.findIndex((c) => c >= want)
-  if (idx < 0) idx = tris.length - 1
+  // Binary search: a linear scan here is O(particles x triangles) on every reseed and morph,
+  // which at 4,200 particles and up to 96 triangles is a visible hitch.
+  let lo = 0
+  let hi = cum.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (cum[mid] >= want) hi = mid
+    else lo = mid + 1
+  }
+  const idx = lo
   const [a, b, c] = tris[idx]
   let u = p.u
   let v = p.v
@@ -174,6 +201,8 @@ export function SceneCanvas() {
     const rgb: [number, number, number] = [...TONE_RGB[DEFAULT_TONE]] as [number, number, number]
     let rgbTarget: [number, number, number] = [...rgb] as [number, number, number]
     const cursor = { x: -9999, y: -9999, nx: 0, ny: 0 }
+    /** Reused across frames: flat [x, y, size] triples per alpha bucket, no per-frame allocation. */
+    const buckets: number[][] = Array.from({ length: ALPHA_BUCKETS }, () => [])
 
     function retarget() {
       for (const p of parts) {
@@ -200,7 +229,7 @@ export function SceneCanvas() {
           x: 0, y: 0, z: 0,
           tx: 0, ty: 0, tz: 0,
           ox: 0, oy: 0,
-          size: 0.7 + Math.random() * 1.15,
+          size: 0.55 + Math.random() * 0.95,
           bright: 0.3 + Math.random() * 0.7,
           phase: Math.random() * Math.PI * 2,
         }
@@ -224,6 +253,8 @@ export function SceneCanvas() {
       const cx = Math.cos(rx)
       const sx = Math.sin(rx)
 
+      for (const b of buckets) b.length = 0
+
       for (const p of parts) {
         const xr = p.x * cy + p.z * sy
         let zr = -p.x * sy + p.z * cy
@@ -231,17 +262,29 @@ export function SceneCanvas() {
         zr = p.y * sx + zr * cx
 
         const k = 6 / (6 + zr)
-        const sxp = cxp + xr * scale * k + p.ox
-        const syp = cyp + yr * scale * k + p.oy
-
         // Twinkle. The reference clamps its size scale to 0.72..1.22; this stays in that band.
         const tw = 0.97 + Math.sin(t * 0.0016 + p.phase) * 0.25
-        const size = Math.max(0.5, p.size * k * tw)
-        const alpha = Math.max(0, Math.min(1, (k - 0.68) * 1.9)) * p.bright * 0.6
+        const alpha = Math.max(0, Math.min(1, (k - 0.68) * 1.9)) * p.bright * MAX_ALPHA
         if (alpha <= 0.012) continue
 
-        ctx!.fillStyle = `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${alpha})`
-        ctx!.fillRect(sxp, syp, size, size)
+        const bucket = Math.min(ALPHA_BUCKETS - 1, ((alpha / MAX_ALPHA) * ALPHA_BUCKETS) | 0)
+        const arr = buckets[bucket]
+        arr.push(cxp + xr * scale * k + p.ox, cyp + yr * scale * k + p.oy, Math.max(0.5, p.size * k * tw))
+      }
+
+      const r = rgb[0] | 0
+      const g = rgb[1] | 0
+      const b2 = rgb[2] | 0
+      for (let i = 0; i < ALPHA_BUCKETS; i++) {
+        const arr = buckets[i]
+        if (arr.length === 0) continue
+        // One style assignment and one fill for the whole bucket.
+        ctx!.fillStyle = `rgba(${r}, ${g}, ${b2}, ${(((i + 0.5) / ALPHA_BUCKETS) * MAX_ALPHA).toFixed(3)})`
+        ctx!.beginPath()
+        for (let j = 0; j < arr.length; j += 3) {
+          ctx!.rect(arr[j], arr[j + 1], arr[j + 2], arr[j + 2])
+        }
+        ctx!.fill()
       }
     }
 

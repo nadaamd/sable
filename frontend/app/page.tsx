@@ -156,7 +156,7 @@ export default function Landing() {
       */}
       <SceneCanvas />
 
-      <section className="band-chrome hero" data-geometry="star" data-geometry-tone="chrome" data-geometry-hero>
+      <section className="band-chrome hero" data-geometry="globe" data-geometry-tone="chrome" data-geometry-hero>
         {/*
           Each scrim hugs its own text. It used to sit on hero-top and hero-bottom, which are
           both full-width while their text lives at the ends — so the gradient's opaque centre
@@ -343,7 +343,7 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- close, on plum ----- */}
-      <section className="band band-chrome" data-geometry="star" data-geometry-tone="chrome">
+      <section className="band band-chrome" data-geometry="globe" data-geometry-tone="chrome">
         <div className="band-inner scrim">
           <p className="eyebrow band-rail">Open it</p>
           <div className="band-body rise">

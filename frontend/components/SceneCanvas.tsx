@@ -87,9 +87,39 @@ function starOutline(spikes: number, outer: number, inner: number): Array<[numbe
   return pts
 }
 
+/**
+ * A UV sphere, as triangles, for the particle sampler to scatter over.
+ *
+ * Sampling a sphere's SURFACE is what makes it read as a globe rather than as a disc: the
+ * projection of a uniformly-sampled sphere is denser at the limb, because near the silhouette the
+ * surface runs edge-on to the view and more of it falls into the same pixels. The rim draws
+ * itself; nothing here fakes it.
+ */
+function sphere(rings: number, segs: number, r: number): Tri[] {
+  const at = (i: number, j: number): V3 => {
+    const phi = (i / rings) * Math.PI
+    const th = (j / segs) * Math.PI * 2
+    return [r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)]
+  }
+  const tris: Tri[] = []
+  for (let i = 0; i < rings; i++) {
+    for (let j = 0; j < segs; j++) {
+      const a = at(i, j)
+      const b = at(i + 1, j)
+      const c = at(i + 1, j + 1)
+      const d = at(i, j + 1)
+      tris.push([a, b, c], [a, c, d])
+    }
+  }
+  return tris
+}
+
+/** The globe's radius in model units, which the arcs and nodes share. */
+const GLOBE_R = 1.24
+
 const SHAPES: Record<string, Tri[]> = {
-  /** Five spikes: the reference's hero form. */
-  star: extrude(starOutline(5, 1.5, 0.6), 0.34),
+  /** The hero form: a planet of dust, with a network drawn over it. See the GLOBE section. */
+  globe: sphere(22, 34, GLOBE_R),
   /** A four-point rhombus, taller than wide. */
   diamond: extrude([[0, 1.62], [0.62, 0], [0, -1.62], [-0.62, 0]], 0.3),
   /** A twelve-sided plate: reads as a ring seen near edge-on. */
@@ -98,7 +128,115 @@ const SHAPES: Record<string, Tri[]> = {
   bloom: extrude(starOutline(6, 1.4, 0.76), 0.28),
 }
 
-const DEFAULT_SHAPE = "star"
+const DEFAULT_SHAPE = "globe"
+
+/*
+ * ------------------------------------------------------------------ globe ---
+ *
+ * A triangulated net over the planet, a thinner shell around it, and traffic walking the net.
+ *
+ * This is a SECOND LAYER, not more particles. The cloud is sampled from a triangle list and
+ * morphs between shapes on scroll, which is the wrong machinery for a fixed graph — the mesh has
+ * to hold its shape while the cloud behind it turns. So the graph is its own geometry, drawn in
+ * the same rotation frame and faded in and out with `globeMix`.
+ *
+ * The net is an ICOSPHERE: an icosahedron subdivided and pushed out to the sphere. That
+ * construction is what gives the even triangular weave — every vertex has five or six neighbours
+ * and every edge is close to the same length, at every point on the sphere. A latitude/longitude
+ * grid cannot do this; its cells shrink to nothing at the poles and the weave visibly crowds
+ * there.
+ */
+const GLOBE_SUB = 3
+const SHELL_SUB = 3
+/** The shell's radius, as a multiple of the globe's. */
+const SHELL_R = 1.2
+
+type Mesh = { verts: V3[]; edges: Array<[number, number]>; adj: number[][] }
+
+function icosphere(sub: number): Mesh {
+  const t = (1 + Math.sqrt(5)) / 2
+  let verts: V3[] = [
+    [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
+    [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
+    [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1],
+  ]
+  let faces: Array<[number, number, number]> = [
+    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+  ]
+
+  for (let s = 0; s < sub; s++) {
+    // Midpoints are cached by edge key, or the shared edges tear into duplicate vertices.
+    const mid = new Map<string, number>()
+    const midpoint = (a: number, b: number) => {
+      const key = a < b ? `${a}_${b}` : `${b}_${a}`
+      const hit = mid.get(key)
+      if (hit !== undefined) return hit
+      const va = verts[a]
+      const vb = verts[b]
+      verts.push([(va[0] + vb[0]) / 2, (va[1] + vb[1]) / 2, (va[2] + vb[2]) / 2])
+      const idx = verts.length - 1
+      mid.set(key, idx)
+      return idx
+    }
+    const next: typeof faces = []
+    for (const [a, b, c] of faces) {
+      const ab = midpoint(a, b)
+      const bc = midpoint(b, c)
+      const ca = midpoint(c, a)
+      next.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca])
+    }
+    faces = next
+  }
+
+  verts = verts.map(([x, y, z]) => {
+    const m = Math.hypot(x, y, z) || 1
+    return [x / m, y / m, z / m] as V3
+  })
+
+  const seen = new Set<string>()
+  const edges: Array<[number, number]> = []
+  const adj: number[][] = verts.map(() => [])
+  for (const f of faces) {
+    for (let k = 0; k < 3; k++) {
+      const a = f[k]
+      const b = f[(k + 1) % 3]
+      const key = a < b ? `${a}_${b}` : `${b}_${a}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      const e = edges.length
+      edges.push([a, b])
+      adj[a].push(e)
+      adj[b].push(e)
+    }
+  }
+  return { verts, edges, adj }
+}
+
+const NET = icosphere(GLOBE_SUB)
+const SHELL = icosphere(SHELL_SUB)
+
+/*
+ * Traffic, as a random walk over the net rather than a loop on a fixed path.
+ *
+ * A dot that shuttles back and forth on one edge reads as an animation; a dot that arrives at a
+ * junction and leaves by a different edge reads as something being routed. At each vertex a
+ * walker picks any incident edge except the one it came in on, so it never doubles back and it
+ * never repeats a route.
+ */
+type Walker = { edge: number; from: number; u: number; speed: number }
+const WALKERS = 54
+/** Head plus three trailing samples, spaced along the edge behind it. */
+const FLOW_TAIL = 4
+const FLOW_GAP = 0.09
+
+/** Alpha buckets for the network, for the same reason the particles have them. */
+const LINE_BUCKETS = 6
+const NET_MAX_ALPHA = 0.3
+const DOT_BUCKETS = 6
+const DOT_MAX_ALPHA = 0.95
 
 /*
  * The particle colour has to change with the surface under it. One fixed canvas crosses opposite
@@ -207,6 +345,29 @@ export function SceneCanvas() {
     const cursor = { x: -9999, y: -9999, nx: 0, ny: 0 }
     /** Reused across frames: flat [x, y, size] triples per alpha bucket, no per-frame allocation. */
     const buckets: number[][] = Array.from({ length: ALPHA_BUCKETS }, () => [])
+    /** The network's own buckets: [x1, y1, x2, y2] per segment, [x, y, r] per dot. */
+    const lineBuckets: number[][] = Array.from({ length: LINE_BUCKETS }, () => [])
+    const dotBuckets: number[][] = Array.from({ length: DOT_BUCKETS }, () => [])
+    /*
+     * How present the network is. The cloud morphs to the next shape on scroll; the graph has no
+     * next shape, so it fades instead of deforming — a set of fixed cities cannot meaningfully
+     * become a diamond.
+     */
+    let globeMix = shape === "globe" ? 1 : 0
+    /* Vertices are projected ONCE per frame; edges and walkers read back from these. Projecting
+       per edge instead would cost 960 rotations a frame for 162 distinct points. */
+    const netProj = new Float32Array(NET.verts.length * 3)
+    const shellProj = new Float32Array(SHELL.verts.length * 3)
+    const walkers: Walker[] = Array.from({ length: WALKERS }, () => {
+      const edge = (Math.random() * NET.edges.length) | 0
+      return {
+        edge,
+        from: NET.edges[edge][(Math.random() * 2) | 0],
+        u: Math.random(),
+        speed: 0.00035 + Math.random() * 0.0005,
+      }
+    })
+    let last = 0
 
     function retarget() {
       for (const p of parts) {
@@ -257,6 +418,26 @@ export function SceneCanvas() {
       const cx = Math.cos(rx)
       const sx = Math.sin(rx)
 
+      /*
+       * The bloom the globe sits in, painted first so everything else lands on top of it.
+       *
+       * The reference's globe is lit from inside; a flat net on a flat ground is a diagram. One
+       * radial gradient does the whole job, and it has to be scaled by globeMix or the halo would
+       * still be sitting there over the peach band four sections down.
+       */
+      if (globeMix > 0.012) {
+        const gr = Math.max(1, scale * GLOBE_R * 1.9)
+        const glow = ctx!.createRadialGradient(cxp, cyp, scale * GLOBE_R * 0.1, cxp, cyp, gr)
+        const gc = `${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}`
+        glow.addColorStop(0, `rgba(${gc}, ${(0.07 * globeMix).toFixed(3)})`)
+        glow.addColorStop(0.5, `rgba(${gc}, ${(0.035 * globeMix).toFixed(3)})`)
+        glow.addColorStop(1, `rgba(${gc}, 0)`)
+        ctx!.fillStyle = glow
+        ctx!.beginPath()
+        ctx!.arc(cxp, cyp, gr, 0, Math.PI * 2)
+        ctx!.fill()
+      }
+
       for (const b of buckets) b.length = 0
 
       for (const p of parts) {
@@ -291,11 +472,168 @@ export function SceneCanvas() {
         }
         ctx!.fill()
       }
+
+      // ------------------------------------------------------------ the network --
+      if (globeMix <= 0.012) return
+
+      for (const bk of lineBuckets) bk.length = 0
+      for (const bk of dotBuckets) bk.length = 0
+
+      /** Rotate a model point into view and project it. Writes into `pt`, allocating nothing. */
+      const pt = { x: 0, y: 0, k: 0 }
+      const project = (x: number, y: number, z: number) => {
+        const xr = x * cy + z * sy
+        let zr = -x * sy + z * cy
+        const yr = y * cx - zr * sx
+        zr = y * sx + zr * cx
+        const k = 6 / (6 + zr)
+        pt.x = cxp + xr * scale * k
+        pt.y = cyp + yr * scale * k
+        pt.k = k
+      }
+
+      const projectInto = (verts: V3[], out: Float32Array, radius: number) => {
+        for (let i = 0; i < verts.length; i++) {
+          const v = verts[i]
+          project(v[0] * radius, v[1] * radius, v[2] * radius)
+          out[i * 3] = pt.x
+          out[i * 3 + 1] = pt.y
+          out[i * 3 + 2] = pt.k
+        }
+      }
+      projectInto(NET.verts, netProj, GLOBE_R)
+      projectInto(SHELL.verts, shellProj, GLOBE_R * SHELL_R)
+
+      /*
+       * Edges, with alpha per EDGE from its depth.
+       *
+       * Culling the far half would leave a net that stops dead at the silhouette; drawing it flat
+       * would stop the sphere reading as a sphere. Depth per edge is what makes the back legible
+       * AS the back — the weave you see through the planet is most of what says it is round.
+       */
+      const strand = (
+        mesh: Mesh,
+        proj: Float32Array,
+        base: number,
+        gain: number,
+        vertBase: number,
+        vertGain: number,
+        vertSize: number,
+        withEdges = true,
+      ) => {
+        for (const [a, b] of withEdges ? mesh.edges : []) {
+          const d = Math.max(0, Math.min(1, ((proj[a * 3 + 2] + proj[b * 3 + 2]) * 0.5 - 0.84) * 3.2))
+          const al = (base + d * gain) * globeMix
+          if (al <= 0.012) continue
+          const bi = Math.min(LINE_BUCKETS - 1, ((al / NET_MAX_ALPHA) * LINE_BUCKETS) | 0)
+          lineBuckets[bi].push(proj[a * 3], proj[a * 3 + 1], proj[b * 3], proj[b * 3 + 1])
+        }
+        for (let i = 0; i < mesh.verts.length; i++) {
+          const k = proj[i * 3 + 2]
+          const d = Math.max(0, Math.min(1, (k - 0.84) * 3.2))
+          const al = (vertBase + d * vertGain) * globeMix
+          if (al <= 0.02) continue
+          const bi = Math.min(DOT_BUCKETS - 1, ((al / DOT_MAX_ALPHA) * DOT_BUCKETS) | 0)
+          dotBuckets[bi].push(proj[i * 3], proj[i * 3 + 1], (vertSize + d * vertSize) * k)
+        }
+      }
+
+      /*
+       * The shell is DOTS ONLY, and that is the correction that made it work.
+       *
+       * Drawn with its edges it read as a second, faceted cage around the planet — long straight
+       * chords hanging in space, which is a polyhedron, not an atmosphere. Stripped to its
+       * vertices at a third of the net's brightness it becomes what it is meant to be: a fine
+       * scatter standing off the surface.
+       */
+      strand(SHELL, shellProj, 0, 0, 0.04, 0.2, 0.45, false)
+      strand(NET, netProj, 0.028, 0.24, 0.1, 0.6, 0.7)
+
+      /*
+       * What is in transit. Interpolated in SCREEN space along the already-projected edge, which
+       * is exact enough at this edge length and saves re-rotating a point per tail sample.
+       */
+      for (const wk of walkers) {
+        const [ea, eb] = NET.edges[wk.edge]
+        const from = wk.from === ea ? ea : eb
+        const to = from === ea ? eb : ea
+        const fx = netProj[from * 3]
+        const fy = netProj[from * 3 + 1]
+        const fk = netProj[from * 3 + 2]
+        const dx = netProj[to * 3] - fx
+        const dy = netProj[to * 3 + 1] - fy
+        const dk = netProj[to * 3 + 2] - fk
+        for (let n = 0; n < FLOW_TAIL; n++) {
+          const u = wk.u - n * FLOW_GAP
+          if (u < 0) continue
+          const k = fk + dk * u
+          const d = Math.max(0, Math.min(1, (k - 0.84) * 3.2))
+          const taper = 1 - n / FLOW_TAIL
+          const al = (0.1 + d * 0.85) * taper * taper * globeMix
+          if (al <= 0.03) continue
+          const bi = Math.min(DOT_BUCKETS - 1, ((al / DOT_MAX_ALPHA) * DOT_BUCKETS) | 0)
+          dotBuckets[bi].push(fx + dx * u, fy + dy * u, (0.8 + d * 1.4) * taper * k)
+        }
+      }
+
+      ctx!.lineWidth = 1
+      for (let i = 0; i < LINE_BUCKETS; i++) {
+        const arr = lineBuckets[i]
+        if (arr.length === 0) continue
+        const al = ((i + 0.5) / LINE_BUCKETS) * NET_MAX_ALPHA
+        ctx!.strokeStyle = `rgba(${r}, ${g}, ${b2}, ${al.toFixed(3)})`
+        ctx!.beginPath()
+        for (let j = 0; j < arr.length; j += 4) {
+          ctx!.moveTo(arr[j], arr[j + 1])
+          ctx!.lineTo(arr[j + 2], arr[j + 3])
+        }
+        ctx!.stroke()
+      }
+
+      for (let i = 0; i < DOT_BUCKETS; i++) {
+        const arr = dotBuckets[i]
+        if (arr.length === 0) continue
+        const al = ((i + 0.5) / DOT_BUCKETS) * DOT_MAX_ALPHA
+        ctx!.fillStyle = `rgba(${r}, ${g}, ${b2}, ${al.toFixed(3)})`
+        ctx!.beginPath()
+        for (let j = 0; j < arr.length; j += 3) {
+          // moveTo before each arc, or the sub-paths join up into one scribble.
+          ctx!.moveTo(arr[j] + arr[j + 2], arr[j + 1])
+          ctx!.arc(arr[j], arr[j + 1], arr[j + 2], 0, Math.PI * 2)
+        }
+        ctx!.fill()
+      }
     }
 
     function step(now: number) {
       t = now
       for (let i = 0; i < rgb.length; i++) rgb[i] += (rgbTarget[i] - rgb[i]) * MORPH_EASE
+      globeMix += ((shape === "globe" ? 1 : 0) - globeMix) * MORPH_EASE * 3
+
+      /*
+       * Route the traffic. On arriving at a vertex a walker leaves by any incident edge except
+       * the one it came in on, so it never doubles back — which is the whole difference between
+       * something being routed and something bouncing.
+       */
+      const dt = Math.min(64, now - last || 16)
+      last = now
+      if (globeMix > 0.012) {
+        for (const wk of walkers) {
+          wk.u += wk.speed * dt
+          while (wk.u >= 1) {
+            const [ea, eb] = NET.edges[wk.edge]
+            const to = wk.from === ea ? eb : ea
+            const opts = NET.adj[to]
+            let next = opts[(Math.random() * opts.length) | 0]
+            for (let guard = 0; next === wk.edge && opts.length > 1 && guard < 5; guard++) {
+              next = opts[(Math.random() * opts.length) | 0]
+            }
+            wk.u -= 1
+            wk.edge = next
+            wk.from = to
+          }
+        }
+      }
 
       const scale = Math.min(w, h) * 0.28
       for (const p of parts) {

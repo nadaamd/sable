@@ -24,12 +24,12 @@ jobs:
     name: contracts and clearing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Node 24 is a requirement, not a preference: `npm test` runs TypeScript through Node's own
       # type stripping, which is what keeps the suite dependency-free. On an older runtime the
       # test files do not load at all.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
@@ -53,9 +53,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm

@@ -112,16 +112,6 @@ function Sparkle() {
   )
 }
 
-function Figure({ value, label, note }: { value: string; label: string; note: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="mono text-[40px] leading-none sm:text-[48px]">{value}</span>
-      <span className="text-[16px]">{label}</span>
-      <span className="note">{note}</span>
-    </div>
-  )
-}
-
 /** Fill only: .pill owns height, padding and radius so both buttons match the reference. */
 const BUTTON_LIGHT: React.CSSProperties = {
   background: "var(--accent)",
@@ -275,58 +265,6 @@ export default function Landing() {
       {/* ------------------------------------------------- legend ------------- */}
       <Band geometry="shell" eyebrow="What a row looks like">
         <Primer label="Stored, then decrypted" animate />
-      </Band>
-
-      {/* ------------------------------------------------- proof, on peach ---- */}
-      <Band tone="peach" geometry="ring" eyebrow="Measured, not claimed">
-        <h2 className="display display-m max-w-[24ch]">Every number here came off the chain.</h2>
-        <div className="stagger grid gap-10 sm:grid-cols-3">
-          <Figure
-            value="101"
-            label="Clearing price"
-            note="Found on six encrypted orders, checked against an independent plaintext engine."
-          />
-          <Figure
-            value="0 of 6"
-            label="Readable without a key"
-            note="With one desk's key, exactly that desk's rows. Measured, not asserted."
-          />
-          <Figure
-            value="55.5%"
-            label="Of a block, at capacity"
-            note="32 orders over 12 levels: 66,651,243 gas. Measured at the bound, not extrapolated."
-          />
-        </div>
-        <p className="max-w-[60ch] text-[16px] leading-relaxed">
-          Clearing cost the same gas, to the unit, on two books sharing no order. The kernel cannot
-          branch on an encrypted value, so it runs the same circuit whatever the values are: a
-          receipt discloses nothing the batch does not already publish.
-        </p>
-      </Band>
-
-      {/* ------------------------------------------------- disclosure --------- */}
-      <Band geometry="diamond" eyebrow="Disclosure surface">
-        <div className="stagger grid gap-10 sm:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[20px]">Public</h3>
-            <ul className="flex flex-col gap-2 text-[16px] text-[var(--dim)]">
-              <li>That an address submitted an order, and when</li>
-              <li>The batch clearing price</li>
-              <li>Total matched volume</li>
-              <li>The full contract source</li>
-            </ul>
-          </div>
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[20px]">Encrypted permanently</h3>
-            <ul className="flex flex-col gap-2 text-[16px] text-[var(--dim)]">
-              <li>Side, buy or sell</li>
-              <li>Limit price</li>
-              <li>Order size</li>
-              <li>Each participant&apos;s individual fill</li>
-              <li>Everything about orders that did not cross</li>
-            </ul>
-          </div>
-        </div>
       </Band>
 
       {/* ------------------------------------------------- close, on plum ----- */}

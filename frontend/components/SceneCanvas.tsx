@@ -68,15 +68,11 @@ type Tri = [V3, V3, V3]
  * surface runs edge-on to the view and more of it falls into the same pixels. The rim draws
  * itself; nothing here fakes it.
  */
-function sphere(rings: number, segs: number, r: number, flatten = 1): Tri[] {
+function sphere(rings: number, segs: number, r: number): Tri[] {
   const at = (i: number, j: number): V3 => {
     const phi = (i / rings) * Math.PI
     const th = (j / segs) * Math.PI * 2
-    return [
-      r * Math.sin(phi) * Math.cos(th),
-      r * flatten * Math.cos(phi),
-      r * Math.sin(phi) * Math.sin(th),
-    ]
+    return [r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)]
   }
   const tris: Tri[] = []
   for (let i = 0; i < rings; i++) {
@@ -162,10 +158,9 @@ const GLOBE_R = 1.24
  * sphere turned into a six-pointed star. The morph itself is worth keeping — the scene should
  * move as you read — but it has to move within one idea.
  *
- * So the planetary shapes are all the same sphere under a different transform: further off,
- * closer in, or collapsed into its own orbital plane. The morph stays legible precisely because
- * the topology is identical, so a particle keeps its place on the surface and the whole form
- * breathes rather than scrambling.
+ * So the planetary shapes are the same sphere at a different distance. The morph stays legible
+ * precisely because the topology is identical: a particle keeps its place on the surface, and
+ * the whole form breathes rather than scrambling.
  *
  * The helix is the one deliberate exception, and it earns the discontinuity: the section it
  * belongs to describes four steps in order, and a strand is what a sequence looks like. Leaving
@@ -176,10 +171,6 @@ const SHAPES: Record<string, Tri[]> = {
   globe: sphere(22, 34, GLOBE_R),
   /** The same planet from further off — wider, and thinner for it. */
   shell: sphere(20, 30, GLOBE_R * 1.26),
-  /** The same planet close in, where the mechanism is. */
-  core: sphere(18, 26, GLOBE_R * 0.7),
-  /** The same matter collapsed into its orbital plane. */
-  disc: sphere(20, 34, GLOBE_R * 1.2, 0.2),
   /** Not a planet: the process section is a sequence, and gets a sequence. */
   /*
    * The ribbon half-width is a density control, not just a thickness. Particles are scattered by

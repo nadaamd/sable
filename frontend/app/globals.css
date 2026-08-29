@@ -154,10 +154,31 @@ body {
   padding: 16px 32px 40px;
 }
 
+/*
+ * The hero's blocks shrink to their text, and each carries its own scrim.
+ *
+ * hero-top and hero-bottom span the full 1248px column while the text they hold sits at the
+ * ends — the title top-left, the buttons bottom-left, the description bottom-right. A scrim on
+ * either of those boxes puts its opaque centre 700px from any letter, so it protected the text
+ * with the faded tail of the gradient and painted the band's own colour straight over the
+ * star's top and bottom tips. Measured at 1440x1000: the star reaches 420px from centre, y 80
+ * to 920, and both tips fell inside a scrim.
+ *
+ * `align-items: flex-start` makes the top block's children shrink-wrap, so a scrim on a child
+ * is centred on actual text. The bottom block's children already size to their content.
+ */
 .hero-top {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
+}
+
+.hero-eyebrow,
+.hero-title,
+.hero-actions,
+.hero-desc {
+  position: relative;
 }
 
 .hero-title {

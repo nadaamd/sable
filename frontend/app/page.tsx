@@ -124,20 +124,26 @@ export default function Landing() {
       <SceneCanvas />
 
       <section className="band-chrome hero" data-geometry="star" data-geometry-tone="chrome" data-geometry-hero>
-        <div className="hero-top scrim enter" style={{ position: "relative", zIndex: 3 }}>
-          <div className="flex items-center gap-4">
+        {/*
+          Each scrim hugs its own text. It used to sit on hero-top and hero-bottom, which are
+          both full-width while their text lives at the ends — so the gradient's opaque centre
+          landed on empty space and erased the star's tips, while the text sat out at the faded
+          edge. See .hero-top / .hero-eyebrow in globals.css.
+        */}
+        <div className="hero-top enter" style={{ position: "relative", zIndex: 3 }}>
+          <div className="hero-eyebrow scrim flex items-center gap-4">
             <Mark size={26} />
             <span className="eyebrow">The confidential cross</span>
           </div>
 
-          <h1 className="display hero-title">
+          <h1 className="display hero-title scrim">
             A market that cannot read its own{" "}
             <span style={{ opacity: 0.6 }}>book</span>.
           </h1>
         </div>
 
-        <div className="hero-bottom scrim" style={{ position: "relative", zIndex: 3 }}>
-          <div className="hero-actions">
+        <div className="hero-bottom" style={{ position: "relative", zIndex: 3 }}>
+          <div className="hero-actions scrim">
             <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
               See it in action
             </Link>
@@ -152,7 +158,7 @@ export default function Landing() {
             </a>
           </div>
 
-          <div className="hero-desc">
+          <div className="hero-desc scrim">
             <p className="text-[15px] leading-relaxed opacity-80">
               Orders arrive encrypted and stay that way. The clearing price is computed without
               decrypting a single one of them, by a contract nobody can see inside, us included.

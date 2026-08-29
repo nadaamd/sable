@@ -240,6 +240,63 @@ body:has(.editorial) {
 }
 
 /*
+ * The hero's light, and the slow drift of it.
+ *
+ * Taken off the reference's own background, which is three layers over a flat ground: a bright
+ * radial bloom, a deeper radial in the opposite corner, and a vertical ramp underneath — sizes
+ * 120% / 140% / 100%, and a 20s ease-in-out drift of the two radials while the ramp holds still.
+ * Its values are #3f2476 over #0d0718, a saturated bloom well above its own ground.
+ *
+ * Transposed rather than copied. Sable's hero ground is Mauve Shadow, so the bloom is that hue
+ * lifted and warmed toward Olive Wood, and the ramp runs from a near-black plum at the top —
+ * which is where the title sits — down to the flat chrome at the bottom. The page reads lit from
+ * the lower right instead of uniformly filled.
+ *
+ * `background-position` is animated rather than a transform, which is the reference's own choice
+ * and costs a repaint of the layer each frame. It is affordable HERE and would not be everywhere:
+ * one viewport, 20s, and the section is only ever on screen at the top of the page. The rest of
+ * the page has no such layer.
+ */
+.band-chrome.hero {
+  --bloom: #6a5462;
+  --deep: #2a2029;
+  --ramp-top: #1b141a;
+
+  background-color: var(--chrome);
+  background-image: radial-gradient(circle at center, var(--bloom) 0%, transparent 60%),
+    radial-gradient(circle at center, var(--deep) 60%, transparent 100%),
+    linear-gradient(180deg, var(--ramp-top) 40%, var(--chrome) 100%);
+  background-repeat: no-repeat;
+  background-size: 120% 120%, 140% 140%, 100% 100%;
+  background-position: 0 0, 100% 100%, 0 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .band-chrome.hero {
+    animation: background-float 20s ease-in-out infinite;
+  }
+}
+
+/* Only the two radials move. The ramp is the horizon and stays where it is. */
+@keyframes background-float {
+  0% {
+    background-position: 0 0, 100% 100%, 0 0;
+  }
+  25% {
+    background-position: 20% 15%, 80% 85%, 0 0;
+  }
+  50% {
+    background-position: 40% 30%, 60% 70%, 0 0;
+  }
+  75% {
+    background-position: 20% 15%, 80% 85%, 0 0;
+  }
+  100% {
+    background-position: 0 0, 100% 100%, 0 0;
+  }
+}
+
+/*
  * The hero's blocks shrink to their text, and each carries its own scrim.
  *
  * hero-top and hero-bottom span the full 1248px column while the text they hold sits at the
@@ -563,8 +620,26 @@ body:has(.editorial) {
   --scrim-color: color-mix(in srgb, var(--panel-hi) 92%, transparent);
 }
 
-.hero {
-  --scrim-color: color-mix(in srgb, var(--chrome) 92%, transparent);
+/*
+ * The hero's scrim is a shadow, not a patch, and it is the only one on the page that has to be.
+ *
+ * Every other band is a flat surface, so laying that surface back down at 92% is invisible. The
+ * hero is a gradient now and the same trick fails twice over: a flat --chrome is LIGHTER than the
+ * ramp's dark top, so the scrims showed as three lit rectangles; and `transparent 100%` puts the
+ * gradient's end at the FARTHEST CORNER, which means it is still part-opaque where it meets the
+ * box's sides and clips there in a straight line.
+ *
+ * So: a near-black, which can only darken and therefore cannot disagree with whatever is under
+ * it, falling to nothing by 68% — comfortably inside the box, so the falloff finishes before any
+ * edge can show. The text here is Cream, so what hides the scrim also lifts its contrast.
+ */
+.hero .scrim::before {
+  inset: -4rem -3rem;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, #150f15 55%, transparent) 0%,
+    transparent 68%
+  );
 }
 
 @media (min-width: 640px) {

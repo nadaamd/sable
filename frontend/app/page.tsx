@@ -62,13 +62,22 @@ function Band({
   const cls = tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : ""
   return (
     <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : "light"}>
-      <div className="band-inner scrim rise flex flex-col gap-8">
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        {children}
+      <div className="band-inner scrim">
+        {eyebrow && <p className="eyebrow band-rail">{eyebrow}</p>}
+        <div className="band-body rise">{children}</div>
       </div>
     </section>
   )
 }
+
+/*
+ * The band's label is a RAIL, not a stacked line.
+ *
+ * The reference offsets its content off a 7-column grid and pins the section label with sticky,
+ * so the label is still on screen at the bottom of the section it names. Here the label had been
+ * stacked above the heading, where it scrolled away in the first 200px and stopped naming
+ * anything. Layout lives in .band-inner / .band-rail / .band-body in globals.css.
+ */
 
 /** One step of the market, numbered. The reference numbers its process; Sable has a real one. */
 function Step({ n, title, body }: { n: string; title: string; body: string }) {
@@ -256,33 +265,36 @@ export default function Landing() {
 
       {/* ------------------------------------------------- close, on plum ----- */}
       <section className="band band-chrome" data-geometry="star" data-geometry-tone="chrome">
-        <div className="band-inner scrim rise flex flex-col gap-8">
-          <h2 className="display display-l max-w-[20ch]">
-            The book is public. It is also unreadable.
-          </h2>
-          <p className="max-w-[50ch] text-[18px] leading-relaxed opacity-80">
-            Fetching the whole thing needs no wallet, no signature and no permission. That is what
-            makes its confidentiality a property of the chain rather than of this page.
-          </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
-              Open the terminal
-            </Link>
-            <span className="text-[14px] opacity-70">Read-only. COTI testnet.</span>
-          </div>
+        <div className="band-inner scrim">
+          <p className="eyebrow band-rail">Open it</p>
+          <div className="band-body rise">
+            <h2 className="display display-l max-w-[20ch]">
+              The book is public. It is also unreadable.
+            </h2>
+            <p className="max-w-[50ch] text-[18px] leading-relaxed opacity-80">
+              Fetching the whole thing needs no wallet, no signature and no permission. That is
+              what makes its confidentiality a property of the chain rather than of this page.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
+                Open the terminal
+              </Link>
+              <span className="text-[14px] opacity-70">Read-only. COTI testnet.</span>
+            </div>
 
-          <div className="band-border mt-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-4 border-t pt-8">
-            <p className="text-[13px] opacity-70">
-              A sealed-bid, uniform-price batch auction, matched under garbled circuits on COTI.
-            </p>
-            <p className="flex flex-wrap gap-x-5 text-[13px]">
-              <a href={EXPLAINER_URL} target="_blank" rel="noreferrer">
-                How it works ↗
-              </a>
-              <a href={REPO_URL} target="_blank" rel="noreferrer">
-                Code ↗
-              </a>
-            </p>
+            <div className="band-border mt-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-4 border-t pt-8">
+              <p className="text-[13px] opacity-70">
+                A sealed-bid, uniform-price batch auction, matched under garbled circuits on COTI.
+              </p>
+              <p className="flex flex-wrap gap-x-5 text-[13px]">
+                <a href={EXPLAINER_URL} target="_blank" rel="noreferrer">
+                  How it works ↗
+                </a>
+                <a href={REPO_URL} target="_blank" rel="noreferrer">
+                  Code ↗
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </section>

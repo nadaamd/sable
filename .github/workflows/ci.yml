@@ -46,6 +46,12 @@ jobs:
       - name: Compile contracts
         run: npm run compile
 
+      # Unit tests of the contract itself, against a plaintext stand-in for COTI's precompile
+      # placed at 0x64 with hardhat_setCode. The contract is unmodified; `--network hardhat` keeps
+      # it on the in-process node, since hardhat.config defaults to the live testnet.
+      - name: Contract unit tests
+        run: npm run test:contracts
+
       # Explicit, because nothing else here would catch it. `npm test` runs the files through
       # Node's type STRIPPING, which discards types without checking them, and hardhat compiles
       # Solidity. Without this step the scripts and tests could stop type-checking and CI would

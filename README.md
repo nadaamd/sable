@@ -177,6 +177,29 @@ limit**, with price, volume and both-sided conservation all matching the referen
 came in 24.6% above the kernel model, for a reason traced in
 [SABLE-EXPLAINED.md §9](SABLE-EXPLAINED.md#9-cost-model-and-capacity).
 
+### Testing
+
+Three layers, and they cover different things.
+
+`npm test` runs the clearing oracle's unit tests offline in under a tenth of a second. That
+oracle is what `run-agents`, `check-offline` and `stress-max-orders` judge the contract
+against, so it has to be right before any of their verdicts mean anything.
+
+`npm run test:contracts` runs SableCross itself on a local Hardhat node. MpcCore reaches the
+garbled backend as an ordinary call to `address(0x64)`, so a plaintext stand-in placed there
+with `hardhat_setCode` lets the **unmodified** contract run offline — clearing, allocation,
+escrow, settlement and every guard. The stand-in copies two behaviours rather than inventing
+them: `Mux(bit, a, b)` returns `bit ? b : a`, and arithmetic wraps instead of reverting, which
+`_allocate` depends on because it evaluates both arms of every mux.
+
+What that cannot touch is confidentiality, which is a property of the real precompile and gone
+by construction once values are plaintext. That is covered by `npm run e2e` on the COTI
+testnet, where trader B genuinely fails to decrypt trader A's fill. The layers are
+complements: the mock proves the logic, the testnet proves the secrecy.
+
+Both offline layers, plus the compile, the typecheck, the frontend lint and build, run on every
+push — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
 The day-1 de-risking spike that sized all of this is in **[SPIKE.md](SPIKE.md)**: the cost
 model, per-operation gas, and the traps that would otherwise have shipped silently.
 
@@ -196,6 +219,10 @@ scripts/agents/check-offline.ts  strategy + reference checks, no network, no gas
 scripts/run-agents.ts            the full agent run
 scripts/cross-e2e.ts             three-trader contract test with assertions
 scripts/spike-gas.ts             gas curve + correctness harness
+scripts/gas-uniformity.ts        two books, same shape, same gas — measured
+test/clearing.test.ts            the clearing oracle, `npm test`, offline
+test/contracts/                  SableCross on a mocked precompile, `npm run test:contracts`
+contracts/test/MockMpc*.sol      the plaintext stand-in that makes those possible
 SPIKE.md                         measured results and design decisions
 
 frontend/                        read-only terminal — the sealed book, live

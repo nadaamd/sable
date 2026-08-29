@@ -6,6 +6,7 @@
   "description": "Sable \u2014 the confidential cross for autonomous agents. A sealed-bid batch auction on COTI gcEVM.",
   "scripts": {
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test 'test/*.test.ts'",
+    "test:contracts": "hardhat test test/contracts/*.test.ts --network hardhat",
     "compile": "hardhat compile",
     "spike": "hardhat run scripts/spike-gas.ts --network coti-testnet",
     "e2e": "hardhat run scripts/cross-e2e.ts --network coti-testnet",

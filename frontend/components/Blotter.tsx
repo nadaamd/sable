@@ -43,7 +43,7 @@ function Row({ order, cleared, flash }: { order: OrderRow; cleared: boolean; fla
   const p = order.plain
 
   return (
-    <tr className={`${p ? "bg-[var(--panel-hi)]" : ""} ${flash ? "revealed" : ""}`}>
+    <tr className={`${p ? "on-light bg-[var(--panel-hi)]" : ""} ${flash ? "revealed" : ""}`}>
       <td className="text-[var(--dim)]">#{order.index}</td>
       <td>
         <Addr address={order.trader} />

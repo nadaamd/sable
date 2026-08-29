@@ -97,7 +97,7 @@ export function Header({
             <Mark />
             <h1 className="mono text-[34px] leading-none tracking-[0.3em] sm:text-[40px]">SABLE</h1>
           </Link>
-          <span className="hidden border-l border-[var(--accent-deep)] pl-4 text-[13px] text-[var(--accent)] md:inline">
+          <span className="hidden border-l border-[var(--line-hi)] pl-4 text-[13px] text-[var(--accent)] md:inline">
             the confidential cross
           </span>
         </div>

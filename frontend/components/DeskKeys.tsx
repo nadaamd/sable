@@ -60,7 +60,7 @@ export function DeskKeys({
             click IS the demonstration. Until they make it, the control asks for it directly.
           */}
           {none ? (
-            <span className="mr-1 text-[14px] text-[var(--accent-deep)]">
+            <span className="mr-1 text-[14px] text-[var(--accent)]">
               Click a desk to decrypt its orders
             </span>
           ) : (

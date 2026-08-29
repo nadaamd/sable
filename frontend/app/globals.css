@@ -34,21 +34,56 @@
  * --buy and --sell remain additions: the palette has no signal colours. The BUY/SELL labels
  * carry the meaning independently, so colour reinforces rather than encodes.
  */
+/*
+ * The palette, dark, for BOTH routes.
+ *
+ * It lived on .editorial while only the landing was dark, so the terminal kept the light
+ * surfaces it had been calibrated against. The two now share it.
+ *
+ *   --bg   #0A0F1C  the page, very dark navy
+ *   --panel #161D2E  a raised surface, 1.14:1 above the page — enough to read as a plane
+ *   --ink  #E2E8C0  Cream         15.07:1 on the page, 13.22:1 on panel
+ *   --dim  #CEA07E  Light Bronze   8.10:1 on the page,  7.10:1 on panel
+ *   --line #443742  Mauve Shadow   1.71:1, structure rather than text
+ *
+ * --dim is held above 7:1 deliberately. It was raised twice before it landed there.
+ *
+ * TWO PAIRS of signal colours, because the page still has light surfaces on it. Sage and
+ * terracotta carry BUY and SELL on the dark; the deep green and rust they replace are what still
+ * works on Soft Peach, and are kept for exactly that. A signal colour is only ever legible
+ * against something, so it cannot be a single value here.
+ */
 :root {
-  --bg: #f3f3f2;
-  --panel: #fbfbfa;
+  --bg: #0a0f1c;
+  --panel: #161d2e;
   --panel-hi: #edd9a3;
   --chrome: #443742;
   --chrome-ink: #e2e8c0;
-  --line: #dedcd6;
-  --line-hi: #c9c6bd;
-  --ink: #443742;
-  --dim: #6c5545;
-  --seal: #846c5b;
-  --buy: #41561c;
-  --sell: #85391f;
+  --line: #443742;
+  --line-hi: #5a4a57;
+  --ink: #e2e8c0;
+  --dim: #cea07e;
+  /*
+   * Olive Wood, lifted for the dark ground.
+   *
+   * #846C5B measured 4.74:1 on the old light panel and 3.42:1 on the navy — and .sealed is not
+   * only the block glyphs, it also sets real ciphertext fingerprints that a reader compares. The
+   * lift restores the contrast the colour HAD (4.76:1) rather than inventing a new target, so the
+   * sealed fields stay exactly as muted against Cream as they always were.
+   */
+  --seal: #9c8471;
+  --buy: #a9c177;
+  --sell: #d2765a;
   --accent: #cea07e;
   --accent-deep: #7c4d2f;
+
+  /* For the light surfaces that remain: the Soft Peach band, and the peach rows and panels. */
+  --ink-on-light: #443742;
+  --dim-on-light: #6c5545;
+  --seal-on-light: #6f5a4a;
+  --buy-on-light: #41561c;
+  --sell-on-light: #85391f;
+
   --header-h: 4.5rem;
 
   /*
@@ -126,49 +161,8 @@ html {
  * 140px. `.display` sizes are fluid so a 140px hero does not overflow a phone, which is the one
  * thing a fixed 140px gets wrong.
  */
-/*
- * The landing runs the palette DARK, and the tokens are redefined here rather than at :root.
- *
- * :root is shared with the terminal, whose panels, blotter and header were all calibrated
- * against the light surfaces. Flipping the tokens globally would restyle a route that is not
- * being looked at, so the dark scheme is scoped to the landing's own <main> and the terminal
- * keeps what it has.
- *
- * Roles, and what each pair measures:
- *
- *   --bg   #0A0F1C  the page, very dark navy
- *   --panel #161D2E  a raised surface, 1.14:1 above the page — enough to read as a plane
- *   --ink  #E2E8C0  Cream         15.07:1 on the page, 13.22:1 on panel
- *   --dim  #CEA07E  Light Bronze   8.10:1 on the page,  7.10:1 on panel
- *   --line #443742  Mauve Shadow   1.71:1, structure rather than text
- *
- * --dim is held above 7:1 deliberately. It was raised twice before it landed there and it is not
- * to drift back toward Olive Wood.
- *
- * TWO surfaces on this page stay light — the Soft Peach band and the Soft Peach half of the
- * Primer — because peach is what the palette has instead of a highlight. Text on those cannot
- * use --ink or --dim, which are now near-white; the pair below is pinned for them and every
- * light surface carries `.on-light`.
- */
 .editorial {
-  --bg: #0a0f1c;
-  --panel: #161d2e;
-  --line: #443742;
-  --line-hi: #5a4a57;
-  --ink: #e2e8c0;
-  --dim: #cea07e;
-  /* For the light surfaces that remain. 8.05:1 and 4.98:1 on Soft Peach, both measured. */
-  --ink-on-light: #443742;
-  --dim-on-light: #6c5545;
-
-  background: var(--bg);
-  color: var(--ink);
   font-family: var(--font-body-src), var(--font-sans);
-}
-
-/* The overscroll gutter, so a rubber-band at either end does not flash the light page under it. */
-body:has(.editorial) {
-  background: #0a0f1c;
 }
 
 /*
@@ -183,11 +177,14 @@ body:has(.editorial) {
  *
  * Measured on Soft Peach: --ink 8.05:1, --dim 4.98:1, --accent 5.09:1.
  */
-.editorial .on-light,
-.editorial .band-peach {
+.on-light,
+.band-peach {
   --ink: var(--ink-on-light);
   --dim: var(--dim-on-light);
   --accent: var(--accent-deep);
+  --seal: var(--seal-on-light);
+  --buy: var(--buy-on-light);
+  --sell: var(--sell-on-light);
   color: var(--ink);
 }
 
@@ -198,11 +195,6 @@ body:has(.editorial) {
  * navy it measures 2.70:1, which fails at 11px. Naming --accent here picks up Light Bronze on the
  * dark surfaces and, through the rebinding above, the deep one again on peach.
  */
-.editorial .eyebrow,
-.editorial .pstep-n {
-  color: var(--accent);
-}
-
 .editorial .display {
   font-family: var(--font-display-src), Georgia, "Times New Roman", serif;
   font-weight: 400;
@@ -733,7 +725,8 @@ body:has(.editorial) {
 .pstep-n {
   font-size: 13px;
   letter-spacing: 0.06em;
-  color: var(--accent-deep);
+  /* --accent, which .on-light swaps to the deep bronze where the ground is light. */
+  color: var(--accent);
 }
 
 .pstep-title {
@@ -887,8 +880,8 @@ body:has(.editorial) {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  /* Light Bronze darkened: the label is now palette, not grey. */
-  color: var(--accent-deep);
+  /* Follows --accent, which .on-light swaps back to the deep bronze where the ground is light. */
+  color: var(--accent);
 }
 
 /*
@@ -1293,8 +1286,19 @@ button:disabled {
   outline-offset: 2px;
 }
 
+/*
+ * Links take --accent, not --accent-deep, and this rule is why several of them were unreadable.
+ *
+ * `a { color }` is UNLAYERED and Tailwind's utilities live in @layer utilities, and an unlayered
+ * declaration beats a layered one whatever the specificity — so this rule silently overrode
+ * `text-[var(--dim)]` on every anchor. On the light page that was invisible, because the two
+ * colours were close. On the navy the deep bronze measures 2.70:1 and the failure is total.
+ *
+ * Naming --accent fixes it on both grounds at once: it is legible on the dark surfaces, and
+ * .on-light swaps it back to the deep bronze wherever the ground is Soft Peach.
+ */
 a {
-  color: var(--accent-deep);
+  color: var(--accent);
   text-decoration: none;
 }
 

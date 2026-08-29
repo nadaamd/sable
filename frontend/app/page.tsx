@@ -128,19 +128,6 @@ const BUTTON_LIGHT: React.CSSProperties = {
   color: "var(--chrome)",
 }
 
-/*
- * The landing overrides the root viewport, because the two routes no longer share a scheme.
- *
- * app/layout.tsx declares themeColor #f3f3f2 / colorScheme light, which is still right for the
- * terminal and wrong here: on mobile that value tints the browser's own chrome, so a dark page
- * would open under a near-white bar. Next resolves `viewport` from the deepest segment that
- * exports one, so this replaces it for this route only.
- */
-export const viewport = {
-  themeColor: "#0a0f1c",
-  colorScheme: "dark",
-}
-
 export default function Landing() {
   return (
     <main className={`${displaySerif.variable} ${bodySans.variable} editorial`}>

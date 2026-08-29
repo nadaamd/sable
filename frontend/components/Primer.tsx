@@ -94,7 +94,7 @@ export function Primer({
         </div>
 
         <div className="flex items-center justify-center bg-[var(--panel)] px-4 py-2 md:px-3">
-          <span className="text-[var(--accent-deep)]" aria-hidden>
+          <span className="text-[var(--accent)]" aria-hidden>
             <span className="md:hidden">↓</span>
             <span className="hidden md:inline">→</span>
           </span>

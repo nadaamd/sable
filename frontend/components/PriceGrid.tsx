@@ -30,8 +30,8 @@ export function PriceGrid({ batch, ticks }: { batch: BatchView; ticks: number[] 
               key={t}
               className="mono px-2 py-1 text-[12px]"
               style={{
-                border: `1px solid ${isClearing ? "var(--accent-deep)" : "var(--line)"}`,
-                color: isClearing ? "var(--accent-deep)" : "var(--dim)",
+                border: `1px solid ${isClearing ? "var(--accent)" : "var(--line)"}`,
+                color: isClearing ? "var(--accent)" : "var(--dim)",
                 background: isClearing ? "color-mix(in srgb, var(--accent) 60%, transparent)" : "transparent",
                 fontVariantNumeric: "tabular-nums",
               }}

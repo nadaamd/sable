@@ -194,7 +194,7 @@ export default function Landing() {
         the heading to run at display-l — on the railed grid it would have had ten columns to do
         it in, and would have broken into three lines.
       */}
-      <Band geometry="bloom" centred>
+      <Band geometry="shell" centred>
         <h2 className="display display-l mx-auto max-w-[22ch]">Being seen is what costs you.</h2>
         {/*
           Left, not centred, inside a centred band. A centred heading is one short line and reads
@@ -229,7 +229,7 @@ export default function Landing() {
         which is where the reference puts it and the only place it can go once the left column is
         the panel.
       */}
-      <section className="band process" data-geometry="diamond" data-geometry-tone="dark">
+      <section className="band process" data-geometry="core" data-geometry-tone="dark">
         <div className="band-inner">
           <div className="process-lede">
             <div className="process-lede-in scrim">
@@ -273,7 +273,7 @@ export default function Landing() {
       </section>
 
       {/* ------------------------------------------------- legend ------------- */}
-      <Band geometry="bloom" eyebrow="What a row looks like">
+      <Band geometry="shell" eyebrow="What a row looks like">
         <Primer label="Stored, then decrypted" animate />
       </Band>
 

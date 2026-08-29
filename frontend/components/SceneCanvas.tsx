@@ -60,33 +60,6 @@ const MORPH_EASE = 0.02
 type V3 = [number, number, number]
 type Tri = [V3, V3, V3]
 
-/** A closed 2D outline, fan-triangulated from the origin and given depth in z. */
-function extrude(outline: Array<[number, number]>, depth: number): Tri[] {
-  const tris: Tri[] = []
-  const zf = depth / 2
-  const zb = -depth / 2
-  for (let i = 0; i < outline.length; i++) {
-    const [ax, ay] = outline[i]
-    const [bx, by] = outline[(i + 1) % outline.length]
-    tris.push([[0, 0, zf], [ax, ay, zf], [bx, by, zf]])
-    tris.push([[0, 0, zb], [ax, ay, zb], [bx, by, zb]])
-    tris.push([[ax, ay, zf], [bx, by, zf], [ax, ay, zb]])
-    tris.push([[bx, by, zf], [bx, by, zb], [ax, ay, zb]])
-  }
-  return tris
-}
-
-/** A star outline: `spikes` tips at `outer`, valleys at `inner`. */
-function starOutline(spikes: number, outer: number, inner: number): Array<[number, number]> {
-  const pts: Array<[number, number]> = []
-  for (let i = 0; i < spikes * 2; i++) {
-    const r = i % 2 === 0 ? outer : inner
-    const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2
-    pts.push([Math.cos(a) * r, Math.sin(a) * r])
-  }
-  return pts
-}
-
 /**
  * A UV sphere, as triangles, for the particle sampler to scatter over.
  *
@@ -95,11 +68,15 @@ function starOutline(spikes: number, outer: number, inner: number): Array<[numbe
  * surface runs edge-on to the view and more of it falls into the same pixels. The rim draws
  * itself; nothing here fakes it.
  */
-function sphere(rings: number, segs: number, r: number): Tri[] {
+function sphere(rings: number, segs: number, r: number, flatten = 1): Tri[] {
   const at = (i: number, j: number): V3 => {
     const phi = (i / rings) * Math.PI
     const th = (j / segs) * Math.PI * 2
-    return [r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)]
+    return [
+      r * Math.sin(phi) * Math.cos(th),
+      r * flatten * Math.cos(phi),
+      r * Math.sin(phi) * Math.sin(th),
+    ]
   }
   const tris: Tri[] = []
   for (let i = 0; i < rings; i++) {
@@ -117,15 +94,31 @@ function sphere(rings: number, segs: number, r: number): Tri[] {
 /** The globe's radius in model units, which the arcs and nodes share. */
 const GLOBE_R = 1.24
 
+/*
+ * One planet, seen four ways.
+ *
+ * These used to be a star, a six-spiked bloom, a rhombus and a plate — a family composed around
+ * a STAR hero. Replacing the hero with a globe and leaving the rest behind meant the page
+ * established a planet and abandoned it at the first scroll: two seconds after meeting it, the
+ * sphere turned into a six-pointed star. The morph itself is worth keeping — the scene should
+ * move as you read — but it has to move within one idea.
+ *
+ * So the planetary shapes are all the same sphere under a different transform: further off,
+ * closer in, or collapsed into its own orbital plane. The morph stays legible precisely because
+ * the topology is identical, so a particle keeps its place on the surface and the whole form
+ * breathes rather than scrambling.
+ *
+ */
 const SHAPES: Record<string, Tri[]> = {
   /** The hero form: a planet of dust, with a network drawn over it. See the GLOBE section. */
   globe: sphere(22, 34, GLOBE_R),
-  /** A four-point rhombus, taller than wide. */
-  diamond: extrude([[0, 1.62], [0.62, 0], [0, -1.62], [-0.62, 0]], 0.3),
-  /** A twelve-sided plate: reads as a ring seen near edge-on. */
-  ring: extrude(starOutline(12, 1.32, 1.1), 0.16),
-  /** Six spikes, softer than the hero star. */
-  bloom: extrude(starOutline(6, 1.4, 0.76), 0.28),
+  /** The same planet from further off — wider, and thinner for it. */
+  shell: sphere(20, 30, GLOBE_R * 1.26),
+  /** The same planet close in, where the mechanism is. */
+  core: sphere(18, 26, GLOBE_R * 0.7),
+  /** The same matter collapsed into its orbital plane. */
+  disc: sphere(20, 34, GLOBE_R * 1.2, 0.2),
+  /** Not a planet: the process section is a sequence, and gets a sequence. */
 }
 
 const DEFAULT_SHAPE = "globe"

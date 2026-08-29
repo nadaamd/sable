@@ -15,89 +15,19 @@
  *   npm run test:contracts
  */
 import { expect } from "chai"
-import hre from "hardhat"
 import { referenceClear } from "../../scripts/agents/reference"
-
-const TICKS = [95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106]
-const WINDOW = 150
-const RESCUE_DELAY = 300
-const MAX_ORDER_SIZE = 1_000
-const MPC_PRECOMPILE = "0x0000000000000000000000000000000000000064"
-
-type Order = { isBuy: boolean; limit: number; size: number }
-const buy = (limit: number, size: number): Order => ({ isBuy: true, limit, size })
-const sell = (limit: number, size: number): Order => ({ isBuy: false, limit, size })
-
-/** An `itUint64`/`itBool`: the mock's ValidateCiphertext returns the ciphertext, so it is the value. */
-const sealed = (v: number | boolean) => ({
-  ciphertext: typeof v === "boolean" ? (v ? 1 : 0) : v,
-  signature: "0x",
-})
-
-async function fixture(ticks: number[] = TICKS, maxOrderSize = MAX_ORDER_SIZE) {
-  const signers = await hre.ethers.getSigners()
-
-  // The whole trick: the real contract, a fake backend, at the address it already calls.
-  const mock = await (await hre.ethers.getContractFactory("MockMpcPrecompile")).deploy()
-  await mock.waitForDeployment()
-  const code = await hre.ethers.provider.getCode(await mock.getAddress())
-  await hre.network.provider.send("hardhat_setCode", [MPC_PRECOMPILE, code])
-
-  const Token = await hre.ethers.getContractFactory("MockPrivateToken")
-  // Typed loosely: typechain's generated types are gitignored and out of tsconfig's scope.
-  const base = (await Token.deploy()) as any
-  const quote = (await Token.deploy()) as any
-  await base.waitForDeployment()
-  await quote.waitForDeployment()
-
-  const cross = (await (await hre.ethers.getContractFactory("SableCross")).deploy(
-    await base.getAddress(),
-    await quote.getAddress(),
-    ticks,
-    WINDOW,
-    RESCUE_DELAY,
-    maxOrderSize,
-  )) as any
-  await cross.waitForDeployment()
-  const crossAddr = await cross.getAddress()
-
-  // Fund and approve generously; these tests are not about running out.
-  for (const s of signers.slice(0, 6)) {
-    for (const t of [base, quote]) {
-      await t.mint(s.address, 10_000_000)
-      await t.connect(s).approve(crossAddr, 10_000_000)
-    }
-  }
-
-  return { cross, base, quote, signers, crossAddr }
-}
-
-/** Submit a book, one order per signer in turn so several traders are involved. */
-async function submit(cross: any, signers: any[], book: Order[]) {
-  for (let i = 0; i < book.length; i++) {
-    const o = book[i]
-    await cross
-      .connect(signers[i % 3])
-      .submitOrder(sealed(o.isBuy), sealed(o.limit), sealed(o.size))
-  }
-}
-
-async function passWindow() {
-  await hre.network.provider.send("evm_increaseTime", [WINDOW + 1])
-  await hre.network.provider.send("evm_mine")
-}
-
-/** Every order's settled numbers, readable only because the backend is a mock. */
-async function results(cross: any, n: number) {
-  const out: Array<{ fill: number; baseOut: number; quoteOut: number }> = []
-  for (let i = 0; i < n; i++) {
-    const o = await cross.orderOf(0, i)
-    out.push({ fill: Number(o[1]), baseOut: Number(o[2]), quoteOut: Number(o[3]) })
-  }
-  return out
-}
-
-const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
+import {
+  TICKS,
+  MAX_ORDER_SIZE,
+  buy,
+  sell,
+  sealed,
+  sum,
+  fixture,
+  submit,
+  passWindow,
+  results,
+} from "./helpers"
 
 describe("SableCross", () => {
   describe("clearing", () => {

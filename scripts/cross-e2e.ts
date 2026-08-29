@@ -346,20 +346,61 @@ async function stageClaim(traders: Wallet[], state: State) {
     check(`trader ${"ABC"[i]} quote delta`, nowQuote - BigInt(before.quote), NET[i].quote)
   }
 
-  // The privacy claim, tested rather than asserted: B must not be able to read A's fill.
+  /*
+   * The privacy claim, tested rather than asserted.
+   *
+   * The page lists five things as encrypted permanently — side, limit, size, each desk's own
+   * fill, and everything about orders that did not cross. This used to test one of them. All
+   * five are attempted here, because "the fill is safe" says nothing about the other four: they
+   * are offboarded by different calls, and a mistake in any one of them leaks a desk's whole
+   * position while every balance and conservation check still passes.
+   *
+   * Each attempt is a REAL decryption with the wrong key. Success would mean the leak is live.
+   */
   console.log(`\n[claim] cross-trader privacy`)
-  const aFill = (await cross.orderOf(0, 0))[1]
-  let leaked: bigint | null = null
-  try {
-    leaked = BigInt(await traders[1].decryptValue(aFill))
-  } catch {
-    leaked = null
+
+  const tryRead = async (reader: Wallet, ct: unknown): Promise<bigint | null> => {
+    try {
+      return BigInt(await reader.decryptValue(ct as never))
+    } catch {
+      return null
+    }
   }
-  if (leaked === BOOK[0].fill) {
-    failures++
-    console.log(`  FAIL trader B decrypted A's fill (${leaked}) — offboarding is not isolating`)
+
+  const probe = async (label: string, reader: Wallet, ct: unknown, truth: bigint) => {
+    const leaked = await tryRead(reader, ct)
+    if (leaked === truth) {
+      failures++
+      console.log(`  FAIL ${label.padEnd(52)} recovered ${leaked}`)
+    } else {
+      console.log(`  ok   ${label.padEnd(52)} got ${leaked === null ? "decrypt error" : leaked}`)
+    }
+  }
+
+  // A's own order, read by B. sealedOrder returns the mirrors offboarded to the OWNER.
+  const aSealed = await cross.sealedOrder(0, 0)
+  await probe(`B cannot read A's side`, traders[1], aSealed[1], BOOK[0].isBuy ? 1n : 0n)
+  await probe(`B cannot read A's limit (${BOOK[0].limit})`, traders[1], aSealed[2], BigInt(BOOK[0].limit))
+  await probe(`B cannot read A's size (${BOOK[0].size})`, traders[1], aSealed[3], BigInt(BOOK[0].size))
+  await probe(`B cannot read A's fill (${BOOK[0].fill})`, traders[1], (await cross.orderOf(0, 0))[1], BOOK[0].fill)
+
+  // An order that did NOT cross, read by an unrelated desk. Its fill is zero, so the interesting
+  // secret is what it wanted: a resting bid nobody matched still reveals a desk's intent.
+  const idle = BOOK.findIndex((o) => o.fill === 0n)
+  if (idle >= 0) {
+    const other = traders[(BOOK[idle].trader + 1) % traders.length]
+    const s = await cross.sealedOrder(0, idle)
+    await probe(`a stranger cannot read the unmatched order's limit`, other, s[2], BigInt(BOOK[idle].limit))
+    await probe(`a stranger cannot read the unmatched order's size`, other, s[3], BigInt(BOOK[idle].size))
+  }
+
+  // And the owner CAN still read their own, or the mirrors would be useless rather than private.
+  const ownSize = await tryRead(traders[0], aSealed[3])
+  if (ownSize === BigInt(BOOK[0].size)) {
+    console.log(`  ok   A can still read A's own size (${ownSize})`)
   } else {
-    console.log(`  ok   trader B cannot recover A's fill of ${BOOK[0].fill} (got ${leaked === null ? "decrypt error" : leaked})`)
+    failures++
+    console.log(`  FAIL A cannot read their own size — the mirrors are not usable`)
   }
 }
 

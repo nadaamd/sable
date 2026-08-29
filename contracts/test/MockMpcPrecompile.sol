@@ -34,6 +34,49 @@ pragma solidity ^0.8.20;
  *     bounds check testable, since that check exists precisely because oversized values wrap.
  */
 contract MockMpcPrecompile {
+    /* ------------------------------------------------------------- the log --
+     *
+     * The mock records every value the contract DECRYPTS and every value it offboards TO A USER,
+     * with the address it was bound to. That turns a property nobody could check offline into an
+     * ordinary assertion:
+     *
+     *   - what SableCross reveals is exactly an admissibility bit per order, then the clearing
+     *     price and the matched volume — and a test can prove nothing else was ever decrypted,
+     *     rather than trusting a reading of the source;
+     *   - every order's private mirror and its fill are bound to that order's OWN trader, so
+     *     offboarding A's data to B would fail a test instead of shipping.
+     *
+     * This is structural confidentiality — what is revealed, and to whom. Cryptographic secrecy
+     * is a property of the real precompile and cannot be observed here at all; that stays with
+     * scripts/cross-e2e.ts on the testnet. The two answer different questions.
+     */
+    uint256[] private _decrypted;
+    uint256[] private _boundValue;
+    address[] private _boundTo;
+
+    function decryptCount() external view returns (uint256) {
+        return _decrypted.length;
+    }
+
+    function decryptedAt(uint256 i) external view returns (uint256) {
+        return _decrypted[i];
+    }
+
+    function bindCount() external view returns (uint256) {
+        return _boundValue.length;
+    }
+
+    function bindingAt(uint256 i) external view returns (uint256 value, address boundTo) {
+        return (_boundValue[i], _boundTo[i]);
+    }
+
+    /// Clear the log, so a test can scope its assertions to one call.
+    function resetLog() external {
+        delete _decrypted;
+        delete _boundValue;
+        delete _boundTo;
+    }
+
     /* --------------------------------------------------------------- widths --
      * metaData packs the operand types: bytes3 is (typeA, typeB, argsFlag) and bytes1 is the
      * type alone. Byte 0 is the result width in both, which is all this needs.
@@ -69,7 +112,10 @@ contract MockMpcPrecompile {
         return gt;
     }
 
-    function OffBoardToUser(bytes1, uint256 gt, bytes calldata) external pure returns (uint256) {
+    function OffBoardToUser(bytes1, uint256 gt, bytes calldata addr) external returns (uint256) {
+        // MpcCore passes abi.encodePacked(address), so 20 bytes.
+        _boundValue.push(gt);
+        _boundTo.push(address(bytes20(addr)));
         return gt;
     }
 
@@ -77,7 +123,8 @@ contract MockMpcPrecompile {
         return v & _m1(meta);
     }
 
-    function Decrypt(bytes1, uint256 a) external pure returns (uint256) {
+    function Decrypt(bytes1, uint256 a) external returns (uint256) {
+        _decrypted.push(a);
         return a;
     }
 

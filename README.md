@@ -192,10 +192,22 @@ escrow, settlement and every guard. The stand-in copies two behaviours rather th
 them: `Mux(bit, a, b)` returns `bit ? b : a`, and arithmetic wraps instead of reverting, which
 `_allocate` depends on because it evaluates both arms of every mux.
 
-What that cannot touch is confidentiality, which is a property of the real precompile and gone
-by construction once values are plaintext. That is covered by `npm run e2e` on the COTI
-testnet, where trader B genuinely fails to decrypt trader A's fill. The layers are
-complements: the mock proves the logic, the testnet proves the secrecy.
+Confidentiality splits into two questions, and each layer answers one.
+
+STRUCTURAL — what the contract chooses to reveal, and which key it binds each value to — is a
+property of SableCross, and the mock records every `Decrypt` and every `OffBoardToUser` so it
+can be asserted offline: submitting reveals one admissibility bit and nothing else, clearing
+reveals the price and the volume and nothing else, settling reveals nothing, and every order's
+mirrors and fill are bound to that order's own trader. Offboarding one desk's fill to another
+key would leave the arithmetic, the balances and every conservation check correct, so this is
+the only layer that would notice.
+
+CRYPTOGRAPHIC — whether an outsider can actually recover a value — belongs to the real
+precompile and is gone by construction once values are plaintext. `npm run e2e` attempts it for
+real on the testnet: a second desk tries to decrypt the first's side, limit, size and fill, and
+a third tries an order that never crossed. It also checks the owner still CAN read their own,
+which is the control that stops "nobody can read it" from passing on data that is merely
+broken.
 
 Both offline layers, plus the compile, the typecheck, the frontend lint and build, run on every
 push — see [.github/workflows/ci.yml](.github/workflows/ci.yml).

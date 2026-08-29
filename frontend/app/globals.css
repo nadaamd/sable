@@ -103,7 +103,19 @@ body {
   font-family: var(--font-sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  /* The page itself must never scroll sideways; wide content scrolls inside .scroll-x. */
+}
+
+/*
+ * The page itself must never scroll sideways; wide content scrolls inside .scroll-x.
+ *
+ * On the ROOT only, and that is not a detail. `overflow-x: hidden` computes the other axis from
+ * `visible` to `auto`, which makes the element a scroll container — so the same declaration on
+ * `body` turned body into the scrollport and silently killed every `position: sticky` on the
+ * page: the process lede, the sparkle and the band rails all resolved against a box that never
+ * scrolls, and simply travelled with the page. On the root element the used value propagates to
+ * the viewport instead, and the viewport is the scrollport sticky wants.
+ */
+html {
   overflow-x: hidden;
 }
 

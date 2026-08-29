@@ -158,6 +158,18 @@ the clearing kernel — a 256-bit PrivateERC20 transfer costs roughly 1.2M again
 64-bit garbled compute op. Settlement is pull-based precisely so that cost sits with each
 desk rather than in the clearing transaction.
 
+Gas does not leak the book either, and this is now measured rather than argued. Two books of
+six orders over the same twelve ticks, sharing no order — one clearing at 101 on a volume of
+65, the other not crossing at all — both cost **9,193,052 gas, identical to the unit**
+(`scripts/gas-uniformity.ts`). The kernel cannot branch on an encrypted value, so it runs the
+same circuit whatever the values are.
+
+That measurement needs its own care: run each book once and they differ by 17,100 gas, which
+is not a leak but 22,100 minus 5,000 — the EVM's gap between initialising a zero storage slot
+and overwriting a non-zero one. Whichever book runs first pays it. The same 17,100 separates
+the first and second order a trader submits, for the same reason and with nothing to do with
+buy versus sell. The script therefore runs each book twice and compares the repeats.
+
 Clearing has also been measured **at the contract's own bound**, since that is the case whose
 failure is unrecoverable: 32 orders over 12 ticks costs **66,651,243 gas — 55.5% of the block
 limit**, with price, volume and both-sided conservation all matching the reference engine.

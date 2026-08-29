@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    // test/ imports with explicit .ts extensions because Node's own test runner resolves them
+    // that way, and ESM needs the extension. tsc rejects that unless told; it never emits here
+    // (hardhat and ts-node transpile in memory), so noEmit costs nothing.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "module": "commonjs",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

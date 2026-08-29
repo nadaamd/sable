@@ -46,6 +46,13 @@ jobs:
       - name: Compile contracts
         run: npm run compile
 
+      # Explicit, because nothing else here would catch it. `npm test` runs the files through
+      # Node's type STRIPPING, which discards types without checking them, and hardhat compiles
+      # Solidity. Without this step the scripts and tests could stop type-checking and CI would
+      # stay green — which is exactly what happened when test/ first landed.
+      - name: Type-check scripts and tests
+        run: npx tsc --noEmit -p tsconfig.json
+
   frontend:
     name: frontend
     runs-on: ubuntu-latest

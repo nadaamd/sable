@@ -239,33 +239,58 @@ html {
  * 120% / 140% / 100%, and a 20s ease-in-out drift of the two radials while the ramp holds still.
  * Its values are #3f2476 over #0d0718, a saturated bloom well above its own ground.
  *
- * Transposed rather than copied. Sable's hero ground is Mauve Shadow, so the bloom is that hue
- * lifted and warmed toward Olive Wood, and the ramp runs from a near-black plum at the top —
- * which is where the title sits — down to the flat chrome at the bottom. The page reads lit from
- * the lower right instead of uniformly filled.
+ * Transposed rather than copied. Sable's ground is Mauve Shadow, so the bloom is that hue lifted
+ * and warmed toward Olive Wood, and the ramp runs to a near-black plum at one end. The band reads
+ * lit from a direction instead of uniformly filled.
+ *
+ * BOTH plum bands carry it, and they are MIRRORED rather than duplicated. The hero is lit from
+ * the lower right and darkens toward its top, where the title sits. The closing band is lit from
+ * the upper left and darkens toward its bottom, so the page's light crosses over its length and
+ * sinks at the end. Copying the hero outright would have read as a repeat; the reversal is what
+ * makes the second one mean something.
+ *
+ * They are never on screen together — one opens the page and the other closes it — so two
+ * animated layers is not two costs.
  *
  * `background-position` is animated rather than a transform, which is the reference's own choice
- * and costs a repaint of the layer each frame. It is affordable HERE and would not be everywhere:
- * one viewport, 20s, and the section is only ever on screen at the top of the page. The rest of
- * the page has no such layer.
+ * and costs a repaint of the layer each frame. Affordable on these two and nowhere else: one
+ * viewport each, 20s and 26s, at opposite ends of a page whose other bands carry no such layer.
  */
-.band-chrome.hero {
+.band-chrome.lit {
   --bloom: #6a5462;
   --deep: #2a2029;
-  --ramp-top: #1b141a;
+  --ramp-far: #1b141a;
 
   background-color: var(--chrome);
   background-image: radial-gradient(circle at center, var(--bloom) 0%, transparent 60%),
     radial-gradient(circle at center, var(--deep) 60%, transparent 100%),
-    linear-gradient(180deg, var(--ramp-top) 40%, var(--chrome) 100%);
+    linear-gradient(var(--ramp-angle), var(--ramp-far) 40%, var(--chrome) 100%);
   background-repeat: no-repeat;
   background-size: 120% 120%, 140% 140%, 100% 100%;
+}
+
+/*
+ * A 120% layer placed at `0 0` centres at 60% of the box, so the bloom sits LOWER RIGHT; placed
+ * at `100% 100%` it centres at 40%, upper left. The two positions are the whole difference.
+ */
+.band-chrome.hero {
+  --ramp-angle: 180deg; /* dark at the top, where the title is */
   background-position: 0 0, 100% 100%, 0 0;
+}
+
+.band-chrome.close {
+  --ramp-angle: 0deg; /* dark at the bottom: the page sinks as it ends */
+  background-position: 100% 100%, 0 0, 0 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .band-chrome.hero {
     animation: background-float 20s ease-in-out infinite;
+  }
+
+  /* Slower, so the two never fall into step on a slow scroll between them. */
+  .band-chrome.close {
+    animation: background-float-mirrored 26s ease-in-out infinite;
   }
 }
 
@@ -285,6 +310,31 @@ html {
   }
   100% {
     background-position: 0 0, 100% 100%, 0 0;
+  }
+}
+
+/*
+ * The same drift with the two radials' positions exchanged.
+ *
+ * The keyframes name absolute positions, so reusing `background-float` on the closing band would
+ * snap its bloom across to the hero's corner on the first frame. The mirror has to be its own
+ * set.
+ */
+@keyframes background-float-mirrored {
+  0% {
+    background-position: 100% 100%, 0 0, 0 0;
+  }
+  25% {
+    background-position: 80% 85%, 20% 15%, 0 0;
+  }
+  50% {
+    background-position: 60% 70%, 40% 30%, 0 0;
+  }
+  75% {
+    background-position: 80% 85%, 20% 15%, 0 0;
+  }
+  100% {
+    background-position: 100% 100%, 0 0, 0 0;
   }
 }
 
@@ -613,10 +663,10 @@ html {
 }
 
 /*
- * The hero's scrim is a shadow, not a patch, and it is the only one on the page that has to be.
+ * A lit band's scrim is a shadow, not a patch — and both of them need it.
  *
- * Every other band is a flat surface, so laying that surface back down at 92% is invisible. The
- * hero is a gradient now and the same trick fails twice over: a flat --chrome is LIGHTER than the
+ * Every flat band can lay its own surface back down at 92% invisibly. A band carrying a gradient
+ * cannot, and the same trick fails twice over there: a flat --chrome is LIGHTER than the
  * ramp's dark top, so the scrims showed as three lit rectangles; and `transparent 100%` puts the
  * gradient's end at the FARTHEST CORNER, which means it is still part-opaque where it meets the
  * box's sides and clips there in a straight line.
@@ -625,12 +675,34 @@ html {
  * it, falling to nothing by 68% — comfortably inside the box, so the falloff finishes before any
  * edge can show. The text here is Cream, so what hides the scrim also lifts its contrast.
  */
-.hero .scrim::before {
+.lit .scrim::before {
   inset: -4rem -3rem;
   background: radial-gradient(
     ellipse at center,
     color-mix(in srgb, #150f15 55%, transparent) 0%,
     transparent 68%
+  );
+}
+
+/*
+ * The rail needs the same treatment, and it is a separate rule — which is exactly how it got
+ * missed. .band-rail carries its own scrim rather than the .scrim class, so fixing the one did
+ * nothing for the other, and the closing band shipped with a lit rectangle behind its label.
+ */
+.lit .band-rail::before {
+  /*
+   * 55% is not a taste: the closing band is lit from the upper left, which is exactly where the
+   * rail sits, and Light Bronze on that bloom measures 2.93:1. Darkening by 55% is the least
+   * that brings an 11px label back over 4.5:1, so the shading is the price of the label being
+   * readable at all. What is adjustable is its SHAPE — a short plateau and a long falloff, so it
+   * reads as shadow rather than as a patch with edges.
+   */
+  inset: -1.1rem -1.7rem;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, #150f15 55%, transparent) 0%,
+    color-mix(in srgb, #150f15 55%, transparent) 18%,
+    transparent 76%
   );
 }
 
@@ -652,6 +724,13 @@ html {
 
   .band-rail {
     grid-column: 1 / 3;
+    /*
+     * Shrink to the label. The rail spans two grid columns, so without this its box is ~190px
+     * wide while the text is a third of that — and its scrim, which is sized from the box, smears
+     * far past the words it exists to protect. The same box-versus-content mistake as the hero's
+     * scrims, in a third place.
+     */
+    justify-self: start;
     position: sticky;
     top: 48px;
     /* Optical, not metric: the 11px label aligns to the display heading's cap-height, not to

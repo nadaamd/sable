@@ -229,7 +229,7 @@ export default function Landing() {
         which is where the reference puts it and the only place it can go once the left column is
         the panel.
       */}
-      <section className="band process" data-geometry="core" data-geometry-tone="dark">
+      <section className="band process" data-geometry="helix" data-geometry-tone="dark">
         <div className="band-inner">
           <div className="process-lede">
             <div className="process-lede-in scrim">

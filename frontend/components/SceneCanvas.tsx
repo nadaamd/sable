@@ -91,6 +91,65 @@ function sphere(rings: number, segs: number, r: number, flatten = 1): Tri[] {
   return tris
 }
 
+/**
+ * A double helix, with rungs. The reference carries one too — its shape table reads
+ * `{ star, diamond, adn }` — and it belongs to the section that describes a SEQUENCE: four steps
+ * in order, two strands that run together without ever touching.
+ *
+ * Built as ribbons rather than tubes. Each segment gets two quads at right angles — one facing
+ * radially out from the axis, one facing along the frame's normal — so the strand still reads as
+ * solid when the rotation brings it edge-on, which a single flat ribbon would not.
+ */
+function helix(steps: number, r: number, height: number, turns: number, w: number, rungEvery: number): Tri[] {
+  const tris: Tri[] = []
+
+  const norm = (v: V3): V3 => {
+    const m = Math.hypot(v[0], v[1], v[2]) || 1
+    return [v[0] / m, v[1] / m, v[2] / m]
+  }
+  const cross = (a: V3, b: V3): V3 => [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ]
+  const along = (p: V3, d: V3, k: number): V3 => [p[0] + d[0] * k, p[1] + d[1] * k, p[2] + d[2] * k]
+
+  /** A point on one strand, with the two directions its cross-section is built from. */
+  const at = (t: number, phase: number) => {
+    const th = t * turns * Math.PI * 2 + phase
+    const p: V3 = [Math.cos(th) * r, (t - 0.5) * height, Math.sin(th) * r]
+    const radial: V3 = [Math.cos(th), 0, Math.sin(th)]
+    const sweep = r * turns * Math.PI * 2
+    const tangent = norm([-Math.sin(th) * sweep, height, Math.cos(th) * sweep])
+    return { p, radial, normal: norm(cross(tangent, radial)) }
+  }
+
+  const ribbon = (pa: V3, da: V3, pb: V3, db: V3, half: number) => {
+    tris.push(
+      [along(pa, da, half), along(pa, da, -half), along(pb, db, -half)],
+      [along(pa, da, half), along(pb, db, -half), along(pb, db, half)],
+    )
+  }
+
+  for (const phase of [0, Math.PI]) {
+    for (let i = 0; i < steps; i++) {
+      const a = at(i / steps, phase)
+      const b = at((i + 1) / steps, phase)
+      ribbon(a.p, a.radial, b.p, b.radial, w)
+      ribbon(a.p, a.normal, b.p, b.normal, w)
+    }
+  }
+
+  // The rungs: what makes it a ladder rather than two unrelated coils.
+  const up: V3 = [0, 1, 0]
+  for (let i = 0; i <= steps; i += rungEvery) {
+    const a = at(i / steps, 0)
+    const b = at(i / steps, Math.PI)
+    ribbon(a.p, up, b.p, up, w * 0.7)
+  }
+  return tris
+}
+
 /** The globe's radius in model units, which the arcs and nodes share. */
 const GLOBE_R = 1.24
 
@@ -108,6 +167,9 @@ const GLOBE_R = 1.24
  * the topology is identical, so a particle keeps its place on the surface and the whole form
  * breathes rather than scrambling.
  *
+ * The helix is the one deliberate exception, and it earns the discontinuity: the section it
+ * belongs to describes four steps in order, and a strand is what a sequence looks like. Leaving
+ * the planet there would have been coherent and said nothing.
  */
 const SHAPES: Record<string, Tri[]> = {
   /** The hero form: a planet of dust, with a network drawn over it. See the GLOBE section. */
@@ -119,6 +181,12 @@ const SHAPES: Record<string, Tri[]> = {
   /** The same matter collapsed into its orbital plane. */
   disc: sphere(20, 34, GLOBE_R * 1.2, 0.2),
   /** Not a planet: the process section is a sequence, and gets a sequence. */
+  /*
+   * The ribbon half-width is a density control, not just a thickness. Particles are scattered by
+   * AREA, so a narrower strand concentrates the same count into less of it: 0.05 gives two
+   * defined coils where 0.075 gave a wide, thin haze.
+   */
+  helix: helix(72, 0.62, 3.1, 2.4, 0.05, 5),
 }
 
 const DEFAULT_SHAPE = "globe"

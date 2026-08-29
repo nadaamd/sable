@@ -525,6 +525,176 @@ html {
 }
 
 /*
+ * ------------------------------------------------------------- process -----
+ *
+ * The pinned split, which is the reference's process section rebuilt on this page's material.
+ *
+ * The lede is a 100vh sticky panel: it pins for the length of the section while the steps scroll
+ * past it. `height: 100vh` with `top: 0` rather than a centring transform — sticky resolves
+ * against the grid AREA, so a viewport-tall box that pins at the top and centres its own content
+ * puts that content on the viewport's midline for the whole scroll, with nothing to unwind at
+ * either end.
+ *
+ * Each step is lit by its distance from that midline. `animation-timeline: view()` measures
+ * exactly that: `cover 0%` is the step entering at the bottom edge, `cover 100%` is it leaving at
+ * the top, so 50% IS the viewport centre. A keyframe that rises to 1 across the middle and falls
+ * away at both ends is the whole effect, with no scroll listener and no frame loop.
+ *
+ * The rule and its sparkle exist to make that midline visible. A focal point the reader can feel
+ * but not see reads as a rendering fault; drawn, it reads as the design.
+ */
+/*
+ * The section closes on its own tail rather than on the page rhythm.
+ *
+ * Its steps already end on 18vh of air with the panel still pinned, so the band's usual 192px
+ * on top of that leaves most of a viewport with an empty right column and a panel on its way
+ * out. Half the padding is the section's share of the seam.
+ */
+.process {
+  padding-bottom: clamp(48px, 6vw, 96px);
+}
+
+.process-lede-in {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.process-lede-body {
+  max-width: 34ch;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--dim);
+}
+
+.process-steps {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(120px, 28vh, 300px);
+}
+
+.pstep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pstep-n {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--accent-deep);
+}
+
+.pstep-title {
+  font-size: clamp(26px, 3.4vw, 44px);
+  line-height: 1.05;
+}
+
+.pstep-body {
+  max-width: 42ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--dim);
+}
+
+/* Below the split there is no midline to mark, so the rule and its sparkle are not drawn. */
+.process-rule {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  /*
+   * A zero-height sticky on the midline, with the panel hung off it.
+   *
+   * A sticky element stays pinned for (its grid area − its own height) of scroll, so the obvious
+   * build — a 100vh panel pinned at top 0 — unpins a full viewport before the section ends and
+   * leaves the left half empty for the last third of the scroll. Collapsing the box to nothing
+   * and translating its content up by half makes the pin last the whole section, which is what
+   * the reference does and what the effect is for.
+   *
+   * The transform is on the CHILD. On the sticky element's ancestor it would break the pin; on
+   * its own content it is just a shift.
+   */
+  .process-lede {
+    grid-column: 1 / 7;
+    position: sticky;
+    top: 50vh;
+    height: 0;
+  }
+
+  .process-lede-in {
+    transform: translateY(-50%);
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .process-lede-body {
+    max-width: 30ch;
+  }
+
+  .process-rule {
+    display: block;
+    grid-column: 7 / 8;
+    justify-self: center;
+    align-self: stretch;
+    position: relative;
+    width: 1px;
+    background: var(--line);
+  }
+
+  /* Rides the rule and stops on the midline, by the same sticky the lede uses. */
+  .process-mark {
+    position: sticky;
+    top: calc(50vh - 11px);
+    display: block;
+    width: 22px;
+    height: 22px;
+    margin-left: -10.5px;
+  }
+
+  .process-steps {
+    grid-column: 8 / -1;
+    /* Lead and tail: the first step reaches the midline after the panel has pinned, and the last
+       one still has room to rise past it and finish lit rather than stopping half-faded. */
+    padding-top: 15vh;
+    padding-bottom: 18vh;
+  }
+}
+
+/*
+ * The focus curve: a rise into the reading zone, and no fall out of it.
+ *
+ * A symmetric pulse was the obvious reading of the reference and it is the wrong one. In its own
+ * frame the step ABOVE the midline is the brightest, the one on the midline is part-lit and the
+ * one below is nearly gone — so the gradient runs with the scroll, not around a centre. It also
+ * behaves better: a step that dims again while it is still on screen takes back text the reader
+ * may not have finished.
+ *
+ * `cover 12%` is a step just up from the bottom edge; `cover 68%` is a step above the midline.
+ * `both` holds 0.1 before the range and 1 after it, so steps arrive dim and stay lit.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .pstep {
+      animation: focus linear both;
+      animation-timeline: view();
+      animation-range: cover 12% cover 68%;
+    }
+  }
+}
+
+@keyframes focus {
+  from {
+    opacity: 0.1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
  * A caption under a figure, coloured per band instead of by opacity.
  *
  * `opacity-70` on --ink over Soft Peach measured 3.83:1, under AA, because opacity blends toward

@@ -79,16 +79,31 @@ function Band({
  * anything. Layout lives in .band-inner / .band-rail / .band-body in globals.css.
  */
 
-/** One step of the market, numbered. The reference numbers its process; Sable has a real one. */
-function Step({ n, title, body }: { n: string; title: string; body: string }) {
+/**
+ * One step of the market, as the reference stacks its process: number, then a display-serif
+ * title, then the body. Its own scrim, not the section's — the section is several viewports
+ * tall and a single radial gradient over it would be opaque in the middle and absent at both
+ * ends. Its opacity is driven by how close it is to the focal line; see .pstep in globals.css.
+ */
+function ProcessStep({ n, title, body }: { n: string; title: string; body: string }) {
   return (
-    <div className="flex gap-5">
-      <span className="mono shrink-0 pt-1 text-[13px] text-[var(--accent-deep)]">{n}</span>
-      <div className="flex flex-col gap-2">
-        <h3 className="text-[20px] leading-snug">{title}</h3>
-        <p className="max-w-[46ch] text-[16px] leading-relaxed text-[var(--dim)]">{body}</p>
-      </div>
-    </div>
+    <article className="pstep scrim">
+      <span className="pstep-n mono">{n}</span>
+      <h3 className="display pstep-title">{title}</h3>
+      <p className="pstep-body">{body}</p>
+    </article>
+  )
+}
+
+/** The focal marker that rides the rule, pinned to the line the steps light up on. */
+function Sparkle() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      <path
+        d="M12 0c.6 6.6 4.8 10.8 12 12-7.2 1.2-11.4 5.4-12 12-.6-6.6-4.8-10.8-12-12C7.2 10.8 11.4 6.6 12 0Z"
+        fill="var(--accent-deep)"
+      />
+    </svg>
   )
 }
 
@@ -186,31 +201,60 @@ export default function Landing() {
       </Band>
 
       {/* ------------------------------------------------- how ---------------- */}
-      <Band geometry="diamond" eyebrow="How it works">
-        <h2 className="display display-m max-w-[26ch]">Four steps, none of them readable.</h2>
-        <div className="stagger flex flex-col gap-9">
-          <Step
-            n="01"
-            title="Desks negotiate, encrypted"
-            body="Autonomous agents exchange indications of interest on chain: a side and a size, deliberately no price. Only the recipient can decrypt one."
-          />
-          <Step
-            n="02"
-            title="Orders are committed sealed"
-            body="Side, limit and size all arrive as ciphertext, with collateral locked under an oblivious select so even which token moved gives nothing away."
-          />
-          <Step
-            n="03"
-            title="The market clears blind"
-            body="At the close, any address may trigger clearing. The contract finds the price that maximises matched volume over a public grid, computing entirely on garbled values."
-          />
-          <Step
-            n="04"
-            title="Settlement stays private"
-            body="Each desk decrypts exactly one number: its own fill. Balances move in confidential tokens, so a payout does not disclose a position."
-          />
+      {/*
+        The one section that changes gear, laid out the way the reference lays out its process.
+
+        The lede pins for the length of the section while the steps scroll past it, and each step
+        is lit by how close it is to the focal line — full at the centre of the viewport, down to
+        a trace at either edge. A rule marks the split and a sparkle rides it at the focal height,
+        so the line the steps light up on is visible rather than merely felt.
+
+        It does NOT take the band rail: this section states its own label inside the pinned panel,
+        which is where the reference puts it and the only place it can go once the left column is
+        the panel.
+      */}
+      <section className="band process" data-geometry="diamond" data-geometry-tone="light">
+        <div className="band-inner">
+          <div className="process-lede">
+            <div className="process-lede-in scrim">
+              <p className="eyebrow">How it works</p>
+              <h2 className="display display-m">Four steps, none of them readable.</h2>
+              <p className="process-lede-body">
+                The whole sequence runs on chain, in public. The contract never reads an order.
+              </p>
+            </div>
+          </div>
+
+          <div className="process-rule" aria-hidden>
+            <span className="process-mark">
+              <Sparkle />
+            </span>
+          </div>
+
+          <div className="process-steps">
+            <ProcessStep
+              n="01"
+              title="Desks negotiate, encrypted"
+              body="Autonomous agents exchange indications of interest on chain: a side and a size, deliberately no price. Only the recipient can decrypt one."
+            />
+            <ProcessStep
+              n="02"
+              title="Orders are committed sealed"
+              body="Side, limit and size all arrive as ciphertext, with collateral locked under an oblivious select so even which token moved gives nothing away."
+            />
+            <ProcessStep
+              n="03"
+              title="The market clears blind"
+              body="At the close, any address may trigger clearing. The contract finds the price that maximises matched volume over a public grid, computing entirely on garbled values."
+            />
+            <ProcessStep
+              n="04"
+              title="Settlement stays private"
+              body="Each desk decrypts exactly one number: its own fill. Balances move in confidential tokens, so a payout does not disclose a position."
+            />
+          </div>
         </div>
-      </Band>
+      </section>
 
       {/* ------------------------------------------------- legend ------------- */}
       <Band geometry="bloom" eyebrow="What a row looks like">

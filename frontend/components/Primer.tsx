@@ -101,7 +101,7 @@ export function Primer({
           <span className="sr-only">becomes, with that desk&apos;s key</span>
         </div>
 
-        <div className="bg-[var(--panel-hi)] px-4 py-4">
+        <div className="on-light bg-[var(--panel-hi)] px-4 py-4">
           <p className="text-[13px]">With that desk&apos;s own key, and no other.</p>
           <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
             <Cell label="desk">Atlas</Cell>

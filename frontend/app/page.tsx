@@ -61,7 +61,7 @@ function Band({
 }) {
   const cls = tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : ""
   return (
-    <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : "light"}>
+    <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : tone === "peach" ? "light" : "dark"}>
       <div className="band-inner scrim">
         {eyebrow && <p className="eyebrow band-rail">{eyebrow}</p>}
         <div className="band-body rise">{children}</div>
@@ -101,7 +101,7 @@ function Sparkle() {
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
       <path
         d="M12 0c.6 6.6 4.8 10.8 12 12-7.2 1.2-11.4 5.4-12 12-.6-6.6-4.8-10.8-12-12C7.2 10.8 11.4 6.6 12 0Z"
-        fill="var(--accent-deep)"
+        fill="var(--accent)"
       />
     </svg>
   )
@@ -121,6 +121,19 @@ function Figure({ value, label, note }: { value: string; label: string; note: st
 const BUTTON_LIGHT: React.CSSProperties = {
   background: "var(--accent)",
   color: "var(--chrome)",
+}
+
+/*
+ * The landing overrides the root viewport, because the two routes no longer share a scheme.
+ *
+ * app/layout.tsx declares themeColor #f3f3f2 / colorScheme light, which is still right for the
+ * terminal and wrong here: on mobile that value tints the browser's own chrome, so a dark page
+ * would open under a near-white bar. Next resolves `viewport` from the deepest segment that
+ * exports one, so this replaces it for this route only.
+ */
+export const viewport = {
+  themeColor: "#0a0f1c",
+  colorScheme: "dark",
 }
 
 export default function Landing() {
@@ -213,7 +226,7 @@ export default function Landing() {
         which is where the reference puts it and the only place it can go once the left column is
         the panel.
       */}
-      <section className="band process" data-geometry="diamond" data-geometry-tone="light">
+      <section className="band process" data-geometry="diamond" data-geometry-tone="dark">
         <div className="band-inner">
           <div className="process-lede">
             <div className="process-lede-in scrim">

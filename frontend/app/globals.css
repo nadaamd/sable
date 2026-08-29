@@ -126,8 +126,81 @@ html {
  * 140px. `.display` sizes are fluid so a 140px hero does not overflow a phone, which is the one
  * thing a fixed 140px gets wrong.
  */
+/*
+ * The landing runs the palette DARK, and the tokens are redefined here rather than at :root.
+ *
+ * :root is shared with the terminal, whose panels, blotter and header were all calibrated
+ * against the light surfaces. Flipping the tokens globally would restyle a route that is not
+ * being looked at, so the dark scheme is scoped to the landing's own <main> and the terminal
+ * keeps what it has.
+ *
+ * Roles, and what each pair measures:
+ *
+ *   --bg   #0A0F1C  the page, very dark navy
+ *   --panel #161D2E  a raised surface, 1.14:1 above the page — enough to read as a plane
+ *   --ink  #E2E8C0  Cream         15.07:1 on the page, 13.22:1 on panel
+ *   --dim  #CEA07E  Light Bronze   8.10:1 on the page,  7.10:1 on panel
+ *   --line #443742  Mauve Shadow   1.71:1, structure rather than text
+ *
+ * --dim is held above 7:1 deliberately. It was raised twice before it landed there and it is not
+ * to drift back toward Olive Wood.
+ *
+ * TWO surfaces on this page stay light — the Soft Peach band and the Soft Peach half of the
+ * Primer — because peach is what the palette has instead of a highlight. Text on those cannot
+ * use --ink or --dim, which are now near-white; the pair below is pinned for them and every
+ * light surface carries `.on-light`.
+ */
 .editorial {
+  --bg: #0a0f1c;
+  --panel: #161d2e;
+  --line: #443742;
+  --line-hi: #5a4a57;
+  --ink: #e2e8c0;
+  --dim: #cea07e;
+  /* For the light surfaces that remain. 8.05:1 and 4.98:1 on Soft Peach, both measured. */
+  --ink-on-light: #443742;
+  --dim-on-light: #6c5545;
+
+  background: var(--bg);
+  color: var(--ink);
   font-family: var(--font-body-src), var(--font-sans);
+}
+
+/* The overscroll gutter, so a rubber-band at either end does not flash the light page under it. */
+body:has(.editorial) {
+  background: #0a0f1c;
+}
+
+/*
+ * The two surfaces that stay light: the Soft Peach band, and the Primer's decrypted half.
+ *
+ * This REDEFINES THE TOKENS rather than setting colours, and that is the whole point. Overriding
+ * `color` only reaches what inherits it: an audit of the rendered page caught the Primer's
+ * desk/side/limit/size labels at 1.68:1, because they set `text-[var(--dim)]` directly and a
+ * declared colour beats an inherited one. Every future descendant would have had the same hole.
+ * Rebinding --ink, --dim and --accent means anything that asks for the palette gets the pair that
+ * works on the surface it is actually standing on.
+ *
+ * Measured on Soft Peach: --ink 8.05:1, --dim 4.98:1, --accent 5.09:1.
+ */
+.editorial .on-light,
+.editorial .band-peach {
+  --ink: var(--ink-on-light);
+  --dim: var(--dim-on-light);
+  --accent: var(--accent-deep);
+  color: var(--ink);
+}
+
+/*
+ * The section label and the step numbers.
+ *
+ * --accent-deep is a dark bronze — it was the label colour when the page was light, and on the
+ * navy it measures 2.70:1, which fails at 11px. Naming --accent here picks up Light Bronze on the
+ * dark surfaces and, through the rebinding above, the deep one again on peach.
+ */
+.editorial .eyebrow,
+.editorial .pstep-n {
+  color: var(--accent);
 }
 
 .editorial .display {
@@ -362,6 +435,7 @@ html {
 
 .band-peach {
   background: var(--panel-hi);
+  /* Overridden inside .editorial, where --ink is Cream. See .on-light above. */
   color: var(--ink);
 }
 

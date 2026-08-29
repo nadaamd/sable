@@ -106,10 +106,14 @@ const DEFAULT_SHAPE = "star"
  * disappears on the light page, where deep bronze is the one that carries.
  */
 const TONE_RGB: Record<string, [number, number, number]> = {
+  /** Cream, on the Mauve Shadow bands. */
   chrome: [226, 232, 192],
+  /** Light Bronze, on the navy page: warm dust rather than white stars. */
+  dark: [206, 160, 126],
+  /** Deep bronze, on the one Soft Peach band — the only light surface the canvas crosses. */
   light: [143, 92, 47],
 }
-const DEFAULT_TONE = "light"
+const DEFAULT_TONE = "dark"
 
 type Particle = {
   pick: number

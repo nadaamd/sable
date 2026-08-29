@@ -1,0 +1,74 @@
+# What can be checked without a chain.
+#
+# Sable's substantive verification — cross-e2e, spike-gas, stress-max-orders — runs against the
+# COTI testnet and needs a funded wallet, so it cannot live here and is still run by hand. What CI
+# can hold is everything that does not touch the network: the clearing oracle those scripts judge
+# the contract against, that the contracts still compile, and that the frontend still builds.
+#
+# Two jobs rather than one, so a red badge says which half broke without opening the log.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch supersedes the run in flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: contracts and clearing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 is a requirement, not a preference: `npm test` runs TypeScript through Node's own
+      # type stripping, which is what keeps the suite dependency-free. On an older runtime the
+      # test files do not load at all.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      # First, because it is the fastest thing here and the most likely to be the reason you came.
+      - name: Clearing oracle unit tests
+        run: npm test
+
+      # No secrets needed: hardhat.config falls back to an empty account list when SIGNING_KEYS is
+      # unset, and compiling never opens a connection.
+      - name: Compile contracts
+        run: npm run compile
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `next build` type-checks as part of the build — next.config sets neither
+      # typescript.ignoreBuildErrors nor eslint.ignoreDuringBuilds — so this is the type gate too.
+      # Every NEXT_PUBLIC_* value has a literal fallback in lib/deployment.ts, so the build needs
+      # no environment.
+      - name: Build
+        run: npm run build

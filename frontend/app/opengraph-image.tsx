@@ -16,14 +16,30 @@ export const alt = "Sable — a sealed-bid auction whose matching engine runs on
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-const BG = "#f3f3f2"
-const PANEL = "#fbfbfa"
-const LINE = "#dedcd6"
-const SEAL = "#846c5b"
-const INK = "#443742"
-const DIM = "#6c5545"
-const ACCENT = "#7c4d2f"
-const BUY = "#41561c"
+/*
+ * The palette, matching :root in globals.css. Two sets, and the second is not optional.
+ *
+ * The revealed row sits on Soft Peach — it is the whole subject of the image, the one row a desk
+ * can read — and a light surface cannot take the dark scheme's near-white ink. Swapping the
+ * tokens naively puts Cream on peach at 1.4:1 and makes exactly that row unreadable, which is
+ * the same trap `.on-light` exists to close in the stylesheet.
+ *
+ * There is no dark-surface BUY here: the only side ever shown is on the revealed row, which is
+ * light. The sage the app uses on its dark bands has nothing to colour in this frame.
+ */
+const BG = "#0a0f1c"
+const PANEL = "#161d2e"
+const LINE = "#443742"
+const SEAL = "#9c8471"
+const INK = "#e2e8c0" // Cream
+const DIM = "#cea07e" // Light Bronze
+const ACCENT = "#edd9a3" // Soft Peach — separated from Cream by hue, not by luminance
+
+// For the one light surface in the frame.
+const PEACH = "#edd9a3"
+const INK_ON_PEACH = "#443742"
+const ACCENT_ON_PEACH = "#7c4d2f"
+const BUY_ON_PEACH = "#41561c"
 
 /** A sealed field: present, addressable, unreadable. */
 function Sealed({ w }: { w: number }) {
@@ -39,15 +55,17 @@ function Row({ desk, revealed }: { desk: string; revealed?: [string, string, str
         gap: 20,
         padding: "9px 20px",
         borderTop: `1px solid ${LINE}`,
-        background: revealed ? "#edd9a3" : "transparent",
+        background: revealed ? PEACH : "transparent",
       }}
     >
-      <div style={{ display: "flex", width: 96, color: revealed ? ACCENT : DIM, fontSize: 19 }}>{desk}</div>
+      <div style={{ display: "flex", width: 96, color: revealed ? ACCENT_ON_PEACH : DIM, fontSize: 19 }}>
+        {desk}
+      </div>
       {revealed ? (
         <>
-          <div style={{ display: "flex", width: 74, color: BUY, fontSize: 19 }}>{revealed[0]}</div>
-          <div style={{ display: "flex", width: 62, color: INK, fontSize: 19 }}>{revealed[1]}</div>
-          <div style={{ display: "flex", color: INK, fontSize: 19 }}>{revealed[2]}</div>
+          <div style={{ display: "flex", width: 74, color: BUY_ON_PEACH, fontSize: 19 }}>{revealed[0]}</div>
+          <div style={{ display: "flex", width: 62, color: INK_ON_PEACH, fontSize: 19 }}>{revealed[1]}</div>
+          <div style={{ display: "flex", color: INK_ON_PEACH, fontSize: 19 }}>{revealed[2]}</div>
         </>
       ) : (
         <>

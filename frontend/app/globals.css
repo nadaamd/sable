@@ -844,6 +844,25 @@ body:has(.editorial) {
 }
 
 /*
+ * A band with no rail, centred on the page.
+ *
+ * The railed grid offsets its content to columns 3-12, which is right when a label is naming an
+ * argument beside it. A section that is one sentence has nothing to name, and the offset reads as
+ * a section that lost its label rather than one that never had one — so the body takes the full
+ * grid and centres.
+ */
+/* Centres the heading. Prose inside opts back out with `text-left`; see the problem band. */
+.band-centred .band-body {
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .band-centred .band-body {
+    grid-column: 1 / -1;
+  }
+}
+
+/*
  * A caption under a figure, coloured per band instead of by opacity.
  *
  * `opacity-70` on --ink over Soft Peach measured 3.83:1, under AA, because opacity blends toward

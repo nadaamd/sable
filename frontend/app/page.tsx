@@ -51,15 +51,20 @@ function Band({
   tone,
   eyebrow,
   geometry,
+  centred,
   children,
 }: {
   tone?: "chrome" | "peach"
   eyebrow?: string
   /** Which wireframe form the scene canvas shows while this band owns the viewport. */
   geometry?: string
+  /** Drop the rail and centre the band on the page, for a section that is one statement. */
+  centred?: boolean
   children: React.ReactNode
 }) {
-  const cls = tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : ""
+  const cls =
+    (tone === "chrome" ? "band-chrome" : tone === "peach" ? "band-peach" : "") +
+    (centred ? " band-centred" : "")
   return (
     <section className={`band ${cls}`} data-geometry={geometry} data-geometry-tone={tone === "chrome" ? "chrome" : tone === "peach" ? "light" : "dark"}>
       <div className="band-inner scrim">
@@ -196,15 +201,26 @@ export default function Landing() {
       </section>
 
       {/* ------------------------------------------------- problem ------------ */}
-      <Band geometry="bloom" eyebrow="The problem">
-        <h2 className="display display-m max-w-[24ch]">Being seen is what costs you.</h2>
-        <div className="stagger grid gap-8 sm:grid-cols-2">
-          <p className="text-[16px] leading-relaxed text-[var(--dim)]">
+      {/*
+        Centred, and without a rail. Every other band is a label plus an argument; this one is a
+        single sentence and the label was competing with it. Dropping the rail is also what frees
+        the heading to run at display-l — on the railed grid it would have had ten columns to do
+        it in, and would have broken into three lines.
+      */}
+      <Band geometry="bloom" centred>
+        <h2 className="display display-l mx-auto max-w-[22ch]">Being seen is what costs you.</h2>
+        {/*
+          Left, not centred, inside a centred band. A centred heading is one short line and reads
+          as a statement; centred prose moves the start of every line, so the eye has to hunt for
+          it on each return sweep. The BLOCK is still centred on the page — only the text is not.
+        */}
+        <div className="stagger mx-auto grid max-w-[1000px] gap-x-16 gap-y-10 text-left sm:grid-cols-2">
+          <p className="text-[17px] leading-relaxed text-[var(--dim)]">
             On a transparent venue your order is readable before it settles, so the price moves
             against you first. Private relays and commit schemes narrow the window; they do not
             close it, because the order is eventually visible to whoever settles it.
           </p>
-          <p className="text-[16px] leading-relaxed text-[var(--dim)]">
+          <p className="text-[17px] leading-relaxed text-[var(--dim)]">
             Traditional finance answered with dark pools, and traded one problem for another. A
             dark pool hides the order from the market but not from its operator. In 2016 Barclays
             and Credit Suisse both settled with the SEC over how theirs ranked and exposed order

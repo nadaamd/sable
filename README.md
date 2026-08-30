@@ -9,6 +9,8 @@ Built for the [COTI Vibe Code Challenge — Web 4 Agent Edition](https://stay.co
 
 **Live terminal: <https://sable-cross.vercel.app>** — read-only, no wallet, opens on a sealed book.
 
+[![CI](https://github.com/nadaamd/sable/actions/workflows/ci.yml/badge.svg)](https://github.com/nadaamd/sable/actions/workflows/ci.yml)
+
 > **Full design and verification record: [SABLE-EXPLAINED.md](SABLE-EXPLAINED.md)** — mechanism,
 > confidential execution model, measured cost model, failure containment, verification
 > methodology. *En français : **[SABLE-EXPLAINED.fr.md](SABLE-EXPLAINED.fr.md)**.*

@@ -1,6 +1,9 @@
 node_modules
 .env
 
+# Next.js build output and trace telemetry
+.next
+
 # Hardhat files
 /cache
 /artifacts

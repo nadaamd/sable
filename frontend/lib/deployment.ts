@@ -18,7 +18,6 @@ export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0x962C3D5
  *
  * The terminal had no route to the source or to the write-up, which is a dead end for the
  * one visitor who matters most — the one who wants to check the claim rather than take it.
- * NOTE: these 404 until the repository is made public.
  */
 export const REPO_URL = "https://github.com/nadaamd/sable"
 export const EXPLAINER_URL = `${REPO_URL}/blob/main/SABLE-EXPLAINED.md`

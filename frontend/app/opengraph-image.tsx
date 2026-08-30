@@ -29,15 +29,15 @@ export const contentType = "image/png"
  */
 const BG = "#0a0f1c"
 const PANEL = "#161d2e"
-const LINE = "#443742"
+const LINE = "#803123"
 const SEAL = "#9c8471"
 const INK = "#e2e8c0" // Cream
-const DIM = "#cea07e" // Light Bronze
+const DIM = "#d8b398" // Light Bronze
 const ACCENT = "#edd9a3" // Soft Peach — separated from Cream by hue, not by luminance
 
 // For the one light surface in the frame.
 const PEACH = "#edd9a3"
-const INK_ON_PEACH = "#443742"
+const INK_ON_PEACH = "#803123"
 const ACCENT_ON_PEACH = "#7c4d2f"
 const BUY_ON_PEACH = "#41561c"
 

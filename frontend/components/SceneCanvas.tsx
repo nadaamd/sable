@@ -23,8 +23,8 @@ import { useEffect, useRef } from "react"
  * so particle i lands in the corresponding region of whatever shape is current.
  *
  * PAINT ORDER. The canvas is `position: fixed; z-index: 2`. An unpositioned section paints its
- * background in the block layer, below positioned elements, so the canvas shows through the plum
- * and peach bands. Content is lifted to `z-index: 3` by `.band-inner`. Giving a band
+ * background in the block layer, below positioned elements, so the canvas shows through the
+ * sienna and peach bands. Content is lifted to `z-index: 3` by `.band-inner`. Giving a band
  * `position: relative` would hide the whole scene — that is the one edit that breaks this.
  *
  * Atmosphere, not information, so the usual box: reduced-motion draws one static frame and never
@@ -292,13 +292,19 @@ const DOT_MAX_ALPHA = 0.95
 
 /*
  * The particle colour has to change with the surface under it. One fixed canvas crosses opposite
- * backgrounds and a single colour cannot serve both: Cream reads 8.84:1 on the plum bands but
+ * backgrounds and a single colour cannot serve both: Cream reads 6.94:1 on the sienna bands but
  * disappears on the light page, where deep bronze is the one that carries.
  */
 const TONE_RGB: Record<string, [number, number, number]> = {
-  /** Cream, on the Mauve Shadow bands. */
+  /** Cream, on the Burnt Sienna bands. */
   chrome: [226, 232, 192],
-  /** Light Bronze, on the navy page: warm dust rather than white stars. */
+  /**
+   * Light Bronze, on the navy page: warm dust rather than white stars.
+   *
+   * NOTE: this is the PRE-LIFT #CEA07E, not the #D8B398 --dim and --accent moved to. The dust
+   * feeds the scrim's contrast maths (a particle alpha of 0.85 is what holds --dim on peach at
+   * 4.63:1), so it is not a value to follow the palette without re-measuring that pair.
+   */
   dark: [206, 160, 126],
   /** Deep bronze, on the one Soft Peach band — the only light surface the canvas crosses. */
   light: [143, 92, 47],

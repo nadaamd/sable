@@ -23,6 +23,23 @@ export const MESSAGING_ADDRESS = process.env.NEXT_PUBLIC_MESSAGING ?? "0x962C3D5
 export const REPO_URL = "https://github.com/nadaamd/sable"
 export const EXPLAINER_URL = `${REPO_URL}/blob/main/SABLE-EXPLAINED.md`
 
+/**
+ * The author, for the one line on the page that is about a person rather than a mechanism.
+ *
+ * An array rather than three constants: the footer renders whatever is listed here, so a link
+ * is added or dropped in one place instead of in the markup.
+ *
+ * GitHub here is the PROFILE, not the repository — the repository already has its own link in
+ * the same footer under "Code", and a second one pointing at it would say nothing new.
+ */
+export const AUTHOR = "Nada"
+
+export const SOCIALS = [
+  { label: "X", href: "https://x.com/nada_amd9" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/nada-ahmadi" },
+  { label: "GitHub", href: "https://github.com/nadaamd" },
+] as const
+
 export type DeskKey = { name: string; address: string; aesKey: string }
 
 /**

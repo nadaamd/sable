@@ -3,9 +3,9 @@
 /*
  * A neutral paper page, with the palette carried by the chrome.
  *
- *   #443742  Mauve Shadow  --chrome  header bar and panel heads; --ink  body text
- *   #E2E8C0  Cream         --chrome-ink   text on chrome                     8.84:1
- *   #CEA07E  Light Bronze  --accent       accents on chrome                  4.79:1
+ *   #803123  Burnt Sienna  --chrome  header bar and panel heads; --ink  body text
+ *   #E2E8C0  Cream         --chrome-ink   text on chrome                     6.94:1
+ *   #D8B398  Light Bronze  --accent       accents on chrome                  4.54:1
  *   #EDD9A3  Soft Peach    --panel-hi     a revealed row
  *   #846C5B  Olive Wood    --seal         sealed fields, dark bars on light
  *
@@ -43,8 +43,8 @@
  *   --bg   #0A0F1C  the page, very dark navy
  *   --panel #161D2E  a raised surface, 1.14:1 above the page — enough to read as a plane
  *   --ink  #E2E8C0  Cream         15.07:1 on the page, 13.22:1 on panel
- *   --dim  #CEA07E  Light Bronze   8.10:1 on the page,  7.10:1 on panel
- *   --line #443742  Mauve Shadow   1.71:1, structure rather than text
+ *   --dim  #D8B398  Light Bronze   9.86:1 on the page,  8.66:1 on panel
+ *   --line #803123  Burnt Sienna   2.17:1, structure rather than text
  *
  * --dim is held above 7:1 deliberately. It was raised twice before it landed there.
  *
@@ -57,12 +57,12 @@
   --bg: #0a0f1c;
   --panel: #161d2e;
   --panel-hi: #edd9a3;
-  --chrome: #443742;
+  --chrome: #803123;
   --chrome-ink: #e2e8c0;
-  --line: #443742;
-  --line-hi: #5a4a57;
+  --line: #803123;
+  --line-hi: #a03d2c;
   --ink: #e2e8c0;
-  --dim: #cea07e;
+  --dim: #d8b398;
   /*
    * Olive Wood, lifted for the dark ground.
    *
@@ -74,11 +74,11 @@
   --seal: #9c8471;
   --buy: #a9c177;
   --sell: #d2765a;
-  --accent: #cea07e;
+  --accent: #d8b398;
   --accent-deep: #7c4d2f;
 
   /* For the light surfaces that remain: the Soft Peach band, and the peach rows and panels. */
-  --ink-on-light: #443742;
+  --ink-on-light: #803123;
   --dim-on-light: #6c5545;
   --seal-on-light: #6f5a4a;
   --buy-on-light: #41561c;
@@ -239,11 +239,11 @@ html {
  * 120% / 140% / 100%, and a 20s ease-in-out drift of the two radials while the ramp holds still.
  * Its values are #3f2476 over #0d0718, a saturated bloom well above its own ground.
  *
- * Transposed rather than copied. Sable's ground is Mauve Shadow, so the bloom is that hue lifted
- * and warmed toward Olive Wood, and the ramp runs to a near-black plum at one end. The band reads
+ * Transposed rather than copied. Sable's ground is Burnt Sienna, so the bloom is that hue lifted
+ * and warmed toward Olive Wood, and the ramp runs to a near-black sienna at one end. It reads
  * lit from a direction instead of uniformly filled.
  *
- * BOTH plum bands carry it, and they are MIRRORED rather than duplicated. The hero is lit from
+ * BOTH sienna bands carry it, and they are MIRRORED rather than duplicated. The hero is lit from
  * the lower right and darkens toward its top, where the title sits. The closing band is lit from
  * the upper left and darkens toward its bottom, so the page's light crosses over its length and
  * sinks at the end. Copying the hero outright would have read as a repeat; the reversal is what
@@ -257,9 +257,9 @@ html {
  * viewport each, 20s and 26s, at opposite ends of a page whose other bands carry no such layer.
  */
 .band-chrome.lit {
-  --bloom: #6a5462;
-  --deep: #2a2029;
-  --ramp-far: #1b141a;
+  --bloom: #b54531;
+  --deep: #5a2218;
+  --ramp-far: #441a13;
 
   background-color: var(--chrome);
   background-image: radial-gradient(circle at center, var(--bloom) 0%, transparent 60%),
@@ -486,9 +486,9 @@ html {
  * --chrome on two buttons. Five colours, one entirely absent. The page came out neutral with plum
  * buttons — the same drift that cost the terminal its identity before the chrome went plum.
  *
- * So the page alternates surfaces. On Mauve Shadow, Cream (8.84:1), Soft Peach (8.05:1) and Light
- * Bronze (4.79:1) all clear AA untouched; on Soft Peach, --ink (8.05:1), --dim (4.98:1) and
- * --accent-deep (5.09:1) do. Both were measured when the terminal's chrome was built.
+ * So the page alternates surfaces. On Burnt Sienna, Cream (6.94:1), Soft Peach (6.32:1) and Light
+ * Bronze (4.54:1) all clear AA untouched; on Soft Peach, --ink (6.32:1), --dim (4.98:1) and
+ * --accent-deep (5.09:1) do. The chrome pairs were re-measured when the ground left Mauve Shadow.
  */
 .band {
   /*
@@ -510,7 +510,7 @@ html {
  *
  * The reference opens its first section at pt-c-320, half again its own section rhythm, so the
  * hero reads as a full stop rather than as the first item in a list. Here the surface also
- * changes at that seam — plum to paper — and a colour change with no air in front of it reads as
+ * changes at that seam — sienna to paper — and a colour change with no air in front of it reads as
  * an accident.
  */
 .hero + .band {
@@ -547,7 +547,7 @@ html {
  * Content sits above the scene canvas.
  *
  * The canvas is `position: fixed; z-index: 2`. An unpositioned section paints its background in
- * the block layer, below positioned elements, so the canvas shows through the plum and peach
+ * the block layer, below positioned elements, so the canvas shows through the sienna and peach
  * bands — that is the whole point. Content is lifted to 3 so it stays legible on top.
  *
  * Do not give a band `position: relative`: it would become a positioned element and paint its
@@ -604,7 +604,7 @@ html {
  * .scrim::before is a radial gradient centred on .band-inner, fully transparent by the box's
  * left edge — which is exactly where the rail now sits. It would be the one piece of text on the
  * page reading straight off the particle cloud, at 11px, in the tightest colour pair here
- * (Light Bronze on chrome, 4.79:1 unobstructed). Small tracked type has the least margin, so it
+ * (Light Bronze on chrome, 4.54:1 unobstructed). Small tracked type has the least margin, so it
  * gets its own protection rather than a wider gradient that would flatten the cloud everywhere.
  */
 .band-rail::before {
@@ -654,6 +654,36 @@ html {
   --scrim-color: color-mix(in srgb, var(--bg) 92%, transparent);
 }
 
+/*
+ * The closing band ends ON its footer, not in air — and centres its content in what is left.
+ *
+ * .band pads up to 192px at both ends, which is the page's rhythm BETWEEN sections. The last
+ * thing on the page is not another section, it is a bar that carries its own colour and its own
+ * vertical padding — so the band's bottom air would have left it floating well above the end of
+ * the document with a strip of chrome below it.
+ *
+ * Dropping that bottom padding alone put the content off-centre the other way: 192px of sienna
+ * above it and 48px below, which reads as content that sank rather than content that is placed.
+ * So ONE value drives both ends — the band's top padding and the footer's top margin — and the
+ * title, prose and actions sit in the middle of their own colour by construction rather than by
+ * a pair of numbers that have to be kept in step by hand.
+ *
+ * 9vw/144px rather than the band rhythm's 12vw/192px: the air is now counted twice inside one
+ * band instead of once between two, so the section's own measure is the wrong unit here.
+ *
+ * Two class selectors, so it outweighs .band without !important.
+ */
+.band.close {
+  --close-air: clamp(72px, 9vw, 144px);
+  padding-top: var(--close-air);
+  padding-bottom: 0;
+}
+
+/* The other half of the pair. Never give this its own value. */
+.band-foot {
+  margin-top: var(--close-air);
+}
+
 .band-chrome {
   --scrim-color: color-mix(in srgb, var(--chrome) 92%, transparent);
 }
@@ -692,7 +722,7 @@ html {
 .lit .band-rail::before {
   /*
    * 55% is not a taste: the closing band is lit from the upper left, which is exactly where the
-   * rail sits, and Light Bronze on that bloom measures 2.93:1. Darkening by 55% is the least
+   * rail sits, and Light Bronze on that bloom measures 2.80:1. Darkening by 55% is the least
    * that brings an 11px label back over 4.5:1, so the shading is the price of the label being
    * readable at all. What is adjustable is its SHAPE — a short plateau and a long falloff, so it
    * reads as shadow rather than as a patch with edges.
@@ -971,11 +1001,15 @@ html {
  * borrowed from their server.
  *
  * `soft-light`, NOT the reference's `multiply`, and that is the one place fidelity lost. Multiply
- * only darkens, so it eats contrast in one direction: measured on the tightest pair on this page
- * (Light Bronze on chrome, 4.79:1) a 4.5% multiply grain took it to 4.54, which is 0.04 from
- * failing AA. Soft-light works symmetrically around mid-grey, so the same pair holds 4.63 at 6%
- * — a heavier, more visible grain for a smaller cost. Every text pair was re-checked at this
- * opacity against a worst-case grain pixel; the tightest sits at 4.63.
+ * only darkens, so it eats contrast in one direction; soft-light works symmetrically around
+ * mid-grey and costs less for a heavier, more visible grain. Every text pair is checked at this
+ * opacity against a worst-case grain pixel.
+ *
+ * The tightest pair is Light Bronze on chrome. On Mauve Shadow it measured 4.79:1 bare and held
+ * 4.63 under the grain. On Burnt Sienna it is 4.54:1 bare and 4.41 under the grain — BELOW AA at
+ * 11px. The grain costs ~0.13 here, so a pair that clears AA bare no longer clears it lit. Either
+ * the bronze goes to #D9B69C (4.67 bare, 4.53 grained) or the band goes to #7E3022; until one of
+ * those lands, the eyebrows on the two chrome bands are the one failing pair on this page.
  *
  * Scoped to the landing. `mix-blend-mode` on a fixed full-screen layer forces everything beneath
  * it into a blending context, and the terminal repaints on an 8s poll — it does not need that.
@@ -1246,10 +1280,10 @@ input {
 }
 
 /*
- * A panel's head is chrome: plum, carrying the palette's light colours.
+ * A panel's head is chrome: Burnt Sienna, carrying the palette's light colours.
  *
  * This is what keeps the palette present on a light page. A text role sitting on a pale surface
- * has to be dark to clear AA, which flattens Light Bronze and Olive Wood into mud. On plum they
+ * has to be dark to clear AA, which flattens Light Bronze and Olive Wood into mud. On sienna they
  * clear it untouched, so the given colours appear at full strength wherever the chrome does.
  */
 .panel-head {

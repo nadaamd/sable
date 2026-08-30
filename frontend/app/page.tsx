@@ -3,7 +3,7 @@ import Link from "next/link"
 import { SceneCanvas } from "@/components/SceneCanvas"
 import { Mark } from "@/components/Mark"
 import { Primer } from "@/components/Primer"
-import { EXPLAINER_URL, REPO_URL } from "@/lib/deployment"
+import { AUTHOR, EXPLAINER_URL, REPO_URL, SOCIALS } from "@/lib/deployment"
 
 /**
  * The landing page.
@@ -118,10 +118,26 @@ const BUTTON_LIGHT: React.CSSProperties = {
   color: "var(--chrome)",
 }
 
+/*
+ * The secondary pill: outlined, not filled.
+ *
+ * It was inline on the hero's second action while it had one user. The closing band now runs the
+ * same three actions, so the two bands would have drifted apart on the next edit to either.
+ *
+ * The colour is set here rather than left to inherit: `.band-chrome a` paints links with
+ * --accent, which is the fill of the primary pill — an outlined button in the primary's own
+ * colour reads as a half-finished version of it. Cream instead, which is what the band's prose
+ * already uses, so the outline reads as a button and not as a link that grew a border.
+ */
+const BUTTON_OUTLINE: React.CSSProperties = {
+  border: "1px solid",
+  color: "var(--chrome-ink)",
+}
+
 export default function Landing() {
   return (
     <main className={`${displaySerif.variable} ${bodySans.variable} editorial`}>
-      {/* ------------------------------------------------- hero, on plum ------ */}
+      {/* ------------------------------------------------- hero, on sienna ---- */}
       {/*
         Geometry copied from the reference: full-viewport section, label and title at the top,
         actions and description pushed to the bottom and spread apart. See .hero in globals.css
@@ -162,7 +178,7 @@ export default function Landing() {
               target="_blank"
               rel="noreferrer"
               className="pill band-border hover:!no-underline"
-              style={{ border: "1px solid", color: "var(--chrome-ink)" }}
+              style={BUTTON_OUTLINE}
             >
               How it works ↗
             </a>
@@ -214,16 +230,11 @@ export default function Landing() {
         is lit by how close it is to the focal line — full at the centre of the viewport, down to
         a trace at either edge. A rule marks the split and a sparkle rides it at the focal height,
         so the line the steps light up on is visible rather than merely felt.
-
-        It does NOT take the band rail: this section states its own label inside the pinned panel,
-        which is where the reference puts it and the only place it can go once the left column is
-        the panel.
       */}
       <section className="band process" data-geometry="helix" data-geometry-tone="dark">
         <div className="band-inner">
           <div className="process-lede">
             <div className="process-lede-in scrim">
-              <p className="eyebrow">How it works</p>
               <h2 className="display display-m">Four steps, none of them readable.</h2>
               <p className="process-lede-body">
                 The whole sequence runs on chain, in public. The contract never reads an order.
@@ -267,10 +278,9 @@ export default function Landing() {
         <Primer label="Stored, then decrypted" animate />
       </Band>
 
-      {/* ------------------------------------------------- close, on plum ----- */}
+      {/* ------------------------------------------------- close, on sienna --- */}
       <section className="band band-chrome lit close" data-geometry="globe" data-geometry-tone="chrome">
         <div className="band-inner scrim">
-          <p className="eyebrow band-rail">Open it</p>
           <div className="band-body rise">
             <h2 className="display display-l max-w-[20ch]">
               The book is public. It is also unreadable.
@@ -279,26 +289,71 @@ export default function Landing() {
               Fetching the whole thing needs no wallet, no signature and no permission. That is
               what makes its confidentiality a property of the chain rather than of this page.
             </p>
+            {/*
+              Three actions, one row, ranked by fill: the terminal is the thing to do, the other
+              two are the ways to check it. They were 13px links under a rule below, which is the
+              wrong weight for the only two routes to the source and the write-up on a page whose
+              whole argument is "go and verify this".
+            */}
             <div className="flex flex-wrap items-center gap-4">
               <Link href="/terminal" className="pill hover:!no-underline" style={BUTTON_LIGHT}>
                 Open the terminal
               </Link>
+              <a
+                href={EXPLAINER_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="pill band-border hover:!no-underline"
+                style={BUTTON_OUTLINE}
+              >
+                How it works ↗
+              </a>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="pill band-border hover:!no-underline"
+                style={BUTTON_OUTLINE}
+              >
+                Code ↗
+              </a>
               <span className="text-[14px] opacity-70">Read-only. COTI testnet.</span>
             </div>
 
-            <div className="band-border mt-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-4 border-t pt-8">
-              <p className="text-[13px] opacity-70">
-                A sealed-bid, uniform-price batch auction, matched under garbled circuits on COTI.
-              </p>
-              <p className="flex flex-wrap gap-x-5 text-[13px]">
-                <a href={EXPLAINER_URL} target="_blank" rel="noreferrer">
-                  How it works ↗
+          </div>
+        </div>
+
+        {/*
+          The signature, and the one rule on this page that runs edge to edge.
+
+          It sits OUTSIDE .band-inner deliberately. .band-inner is a centred 1280px column with
+          its own gutters, so a border on anything inside it stops at that column — which is what
+          the row above does. .band itself sets only padding-block, so a direct child of the
+          section spans the viewport and its border does too. No 100vw and no negative margins:
+          both measure the viewport INCLUDING the scrollbar and overflow the page by its width.
+
+          The text still lines up with the column above it, because the inner box repeats
+          .band-inner's measure and gutters (1280 / 16-32-48px) without its 12-column grid.
+
+          It carries --bg, the page's own near-black, which does two things at once: it ends the
+          document on the colour the rest of the site is built on rather than on chrome, and it
+          makes the scrim unnecessary. The dust canvas sits at z-2 and passes behind this text;
+          an opaque bar at z-3 covers it outright, where .band-inner had to lay a 92% wash down
+          instead. The pairs improve for the same reason — Cream reads 15.07:1 here and the links
+          9.86:1, against 6.94 and 4.54 on the chrome above.
+
+          GitHub here is the profile — the repository is already one row up, under "Code".
+        */}
+        <div className="band-foot band-border relative z-[3] border-t bg-[var(--bg)] py-8">
+          <div className="mx-auto flex max-w-[1280px] flex-wrap items-baseline justify-between gap-x-8 gap-y-2 px-4 text-[13px] sm:px-8 lg:px-12">
+            <p className="opacity-70">Built by {AUTHOR}</p>
+            <p className="flex flex-wrap gap-x-5">
+              {SOCIALS.map((social) => (
+                <a key={social.label} href={social.href} target="_blank" rel="noreferrer">
+                  {social.label} ↗
                 </a>
-                <a href={REPO_URL} target="_blank" rel="noreferrer">
-                  Code ↗
-                </a>
-              </p>
-            </div>
+              ))}
+            </p>
           </div>
         </div>
       </section>

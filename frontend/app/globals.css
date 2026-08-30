@@ -652,6 +652,23 @@ html {
 
 .band {
   --scrim-color: color-mix(in srgb, var(--bg) 92%, transparent);
+
+  /*
+   * The scrim overhangs its parent, and the page paid for it in a sideways scrollbar.
+   *
+   * .scrim::before is inset -2.5rem -2rem, so it reaches 39px past .band-inner on each side. That
+   * overhang is the point — the wash has to clear the text it protects — but .band-inner can be as
+   * wide as the viewport, and then the overhang lands outside it. Measured: scrollWidth 1319 against
+   * a clientWidth of 1280, on every screen, including the phones X plays on.
+   *
+   * `clip`, NOT `hidden`. `hidden` would fix the same 39px and create a scroll container doing it,
+   * and a scroll container breaks every `position: sticky` inside it — which is the whole process
+   * section's pinned lede and .band-rail. `clip` cuts the overflow without becoming one.
+   *
+   * Nothing visible is lost: what gets clipped is the far tail of a radial gradient, over a band
+   * already painted in the colour that gradient is laying back down.
+   */
+  overflow-x: clip;
 }
 
 /*

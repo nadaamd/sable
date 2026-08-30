@@ -221,23 +221,34 @@ model, per-operation gas, and the traps that would otherwise have shipped silent
 
 ```
 contracts/SableCross.sol         the market: batches, escrow, clearing, allocation, claim
+contracts/GasSpike.sol           the clearing kernel, instrumented for measurement
 contracts/test/TestToken.sol     PrivateERC20 with an open mint, for testnet runs
 contracts/test/DeskMessaging.sol deployable PrivateMessaging — the desks' RFQ channel
-contracts/GasSpike.sol           the clearing kernel, instrumented for measurement
+contracts/test/Mock*.sol         plaintext stand-ins for the precompile and the token
 
 scripts/agents/desks.ts          the three private mandates and the market grid
 scripts/agents/strategy.ts       deterministic decision layer, pure and testable
 scripts/agents/reference.ts      plaintext clearing engine — the oracle for the contract
 scripts/agents/desk.ts           a desk's on-chain behaviour: RFQ, submit, claim
 scripts/agents/check-offline.ts  strategy + reference checks, no network, no gas
+scripts/utils/                   testnet wallet plumbing: create, fund, onboard an AES key
+
 scripts/run-agents.ts            the full agent run
 scripts/cross-e2e.ts             three-trader contract test with assertions
+scripts/test-rescue.ts           the escape hatch, exercised end to end
 scripts/spike-gas.ts             gas curve + correctness harness
 scripts/gas-uniformity.ts        two books, same shape, same gas — measured
+scripts/stress-max-orders.ts     does clearing fit in a block at the contract's own limit?
+scripts/preflight.ts             GO / NO-GO before a demo: RPC, batch, keys
+scripts/frontend-config.ts       writes frontend/.env.local from the current run
+scripts/new-wallet.ts            a fresh testnet wallet, written to .env
+
 test/clearing.test.ts            the clearing oracle, `npm test`, offline
 test/contracts/                  SableCross on a mocked precompile, `npm run test:contracts`
-contracts/test/MockMpc*.sol      the plaintext stand-in that makes those possible
+test/contracts/helpers.ts        the shared harness those tests are built on
+
 SPIKE.md                         measured results and design decisions
+spike-report.json                the raw gas samples behind them
 
 frontend/                        read-only terminal — the sealed book, live
 ```

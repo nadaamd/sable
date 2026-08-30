@@ -13,7 +13,7 @@ Built for the [COTI Vibe Code Challenge — Web 4 Agent Edition](https://stay.co
 
 > **Full design and verification record: [SABLE-EXPLAINED.md](SABLE-EXPLAINED.md)** — mechanism,
 > confidential execution model, measured cost model, failure containment, verification
-> methodology. *En français : **[SABLE-EXPLAINED.fr.md](SABLE-EXPLAINED.fr.md)**.*
+> methodology.
 
 ---
 

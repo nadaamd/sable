@@ -245,7 +245,7 @@ async function main() {
   console.log(`
   cd frontend && npm run dev        then film http://localhost:3000
   the book opens fully sealed; clicking a desk key resolves only its own rows.
-  shot list and narration: VIDEO.md\n`)
+`)
 }
 
 main().catch((e) => {

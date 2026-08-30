@@ -284,8 +284,7 @@ npm run preflight              # read-only, zero gas — GO / NO-GO in ~10s
 
 It samples RPC availability rather than assuming it, confirms the terminal will open on a
 populated batch, and checks that the desk keys on disk unlock rows in *that* batch — keys from
-a previous market fail silently, and you find out when a click reveals nothing. Shot list and
-narration for the demo video: **[VIDEO.md](VIDEO.md)**.
+a previous market fail silently, and you find out when a click reveals nothing.
 
 Testnet only. Keys live in `.env`, which is gitignored — never reuse them on mainnet.
 
